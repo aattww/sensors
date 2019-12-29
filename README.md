@@ -38,6 +38,7 @@ Skip directly to [Instructions](#instructions), although I strongly recommend re
     * [Battery](#battery-3)
     * [Pulse / Pulse with Kamstrup Multical](#pulse--pulse-with-kamstrup-multical-1)
 * [Instructions](#instructions)
+* [Version history](#version-history)
 
 # External requirements
 
@@ -417,3 +418,13 @@ Place your gateway to a central location and connect it to a Modbus capable netw
 Distribute other nodes as needed, selecting first their addresses with jumper headers and then connecting external power or batteries. Use the button on the nodes to force a transmit with full power - normally nodes adjust their transmit power automatically to the lowest possible level. One blink of the onboard LED indicates a successful transmit, two blinks a failed one. LED blinks only when forcing a transmit with the button. You can use the provided Python script [*read_modbus.py*](read_modbus.py) to read data from the gateway for debugging purposes.
 
 Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_modbus_to_db.py) provides a starting point for this), for example, and graph it with [Grafana](https://grafana.com/), or connect the gateway to a home automation hub and monitor measurements that way.
+
+# Version history
+
+## v1.0.1 (2019-12-29)
+
+* Fixed a bug in NTCSensor library where enable pin was controlled even though it was not in actual use, possibly interfering with serial communication.
+
+## v1.0.0 (2019-12-26)
+
+Initial public release.
