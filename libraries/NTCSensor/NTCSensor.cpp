@@ -33,16 +33,16 @@
  *
  * Parameters:
  *   enablePin - Enable voltage divider and power on thermistor
- *               255   = Not in use, thermistor is always pulled up by external resistor to Vcc
- *              !=255  = Pin connected to high side of divider
+ *               NTC_NO_ENABLE_PIN = Not in use, thermistor is always pulled up by external resistor to Vcc
+ *               ARDUINO PIN       = Pin connected to high side of divider
  *   sensorPin - Thermistor
  *
- * Schematic (enablePin != 255):
+ * Schematic (enablePin != NTC_NO_ENABLE_PIN):
  * [GND]---[NTC]---|---[SERIES_RESISTOR]---[enablePin]
  *                 |
  *            [sensorPin]
  *
- * Schematic (enablePin == 255):
+ * Schematic (enablePin == NTC_NO_ENABLE_PIN):
  * [GND]---[NTC]---|---[SERIES_RESISTOR]---[Vcc]
  *                 |
  *            [sensorPin]
@@ -53,7 +53,7 @@
 /*
  * Creates a new instance.
  *
- * enablePin: voltage divider enable pin (set to 255 if not in use)
+ * enablePin: voltage divider enable pin (set to NTC_NO_ENABLE_PIN if not in use)
  * sensorPin: thermistor pin
  *
  * returns:   no
@@ -83,7 +83,7 @@ bool NTCSensor::init() {
   // Go through different scenarios to determine if thermistor is connected properly
   
   // If thermistor does not have a separate enable pin (thermistor should always be powered)
-  if (_enablePin == 255) {
+  if (_enablePin == NTC_NO_ENABLE_PIN) {
     // Enable internal pullup resistor so that pin is not floating if there is no thermistor
     pinMode(_sensorPin, INPUT_PULLUP);
     delay(50);
@@ -136,7 +136,7 @@ bool NTCSensor::init() {
 }
 
 /*
- * Reads current temperature.
+ * Reads current temperature in Celsius.
  *
  * parameters: no
  *
@@ -153,9 +153,11 @@ int16_t NTCSensor::readTemperature() {
   analogReference(DEFAULT);
   analogRead(_sensorPin);
   
-  // Turn on analog voltage divider
-  digitalWrite(_enablePin, HIGH);
-  delay(50);
+  // Turn on analog voltage divider if it is in use
+  if (_enablePin != NTC_NO_ENABLE_PIN) {
+    digitalWrite(_enablePin, HIGH);
+    delay(50);
+  }
   
   float average = 0.0;
  
@@ -165,8 +167,10 @@ int16_t NTCSensor::readTemperature() {
    delay(10);
   }
   
-  // Turn off analog voltage
-  digitalWrite(_enablePin, LOW);
+  // Turn off analog voltage if in use
+  if (_enablePin != NTC_NO_ENABLE_PIN) {
+    digitalWrite(_enablePin, LOW);
+  }
  
   // Calculate average
   average /= 5.0;

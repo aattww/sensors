@@ -61,7 +61,7 @@
 
 
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 1
+#define MINOR_VERSION 2
 
 #include <SimpleModbusAsync.h>
 #include <RH_RF95.h>
@@ -120,7 +120,7 @@ RHReliableDatagram radioManager(rf95Driver);
 SimpleModbusAsync modbus;
 
 // NTC instance
-NTCSensor sensorNTC(0, P3_PIN);
+NTCSensor sensorNTC(NTC_NO_ENABLE_PIN, P3_PIN);
 
 // Memory handler instance
 SensorsMemoryHandler memoryHandler(SRAM_NSS);

@@ -33,16 +33,16 @@
  *
  * Parameters:
  *   enablePin - Enable voltage divider and power on thermistor
- *               255   = Not in use, thermistor is always pulled up by external resistor to Vcc
- *              !=255  = Pin connected to high side of divider
+ *               NTC_NO_ENABLE_PIN = Not in use, thermistor is always pulled up by external resistor to Vcc
+ *               ARDUINO PIN       = Pin connected to high side of divider
  *   sensorPin - Thermistor
  *
- * Schematic (enablePin != 255):
+ * Schematic (enablePin != NTC_NO_ENABLE_PIN):
  * [GND]---[NTC]---|---[SERIES_RESISTOR]---[enablePin]
  *                 |
  *            [sensorPin]
  *
- * Schematic (enablePin == 255):
+ * Schematic (enablePin == NTC_NO_ENABLE_PIN):
  * [GND]---[NTC]---|---[SERIES_RESISTOR]---[Vcc]
  *                 |
  *            [sensorPin]
@@ -52,6 +52,8 @@
 #define NTCSENSOR_H
 
 #include "Arduino.h"
+
+#define NTC_NO_ENABLE_PIN 255
 
 // Resistance at 25 C
 #define NOMINAL_RESISTANCE 10000.0
@@ -69,7 +71,7 @@ class NTCSensor {
   
   private:
   
-    uint8_t _enablePin;  // Voltage divider enable pin (255 if not in use)
+    uint8_t _enablePin;  // Voltage divider enable pin (NTC_NO_ENABLE_PIN if not in use)
     uint8_t _sensorPin;  // Thermistor pin
     bool _initialised;   // Sensor has been initialized
 
@@ -78,7 +80,7 @@ class NTCSensor {
     /*
      * Creates a new instance.
      *
-     * enablePin: voltage divider enable pin (set to 255 if not in use)
+     * enablePin: voltage divider enable pin (set to NTC_NO_ENABLE_PIN if not in use)
      * sensorPin: thermistor pin
      *
      * returns:   no
@@ -99,7 +101,7 @@ class NTCSensor {
     bool init();
     
     /*
-     * Reads current temperature.
+     * Reads current temperature in Celsius.
      *
      * parameters: no
      *

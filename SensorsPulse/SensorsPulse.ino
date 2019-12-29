@@ -85,7 +85,7 @@
  */
 
 
-#define VERSION 1
+#define VERSION 2
 
 #if defined NODE_TYPE_MULTICAL
 #include <SimpleModbusAsync.h>
@@ -144,7 +144,7 @@ RHReliableDatagram radioManager(rf95Driver);
 SimpleModbusAsync modbus;
 #endif
 
-NTCSensor sensorNTC(0, P3_PIN);
+NTCSensor sensorNTC(NTC_NO_ENABLE_PIN, P3_PIN);
 
 // Payload buffer
 uint8_t payloadBuffer[PAYLOAD_LEN];
