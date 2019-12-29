@@ -48,6 +48,17 @@
  *            [sensorPin]
  */
 
+/*
+ * Version history
+ * ---------------
+ *
+ * 1.1 2019-12-29 (CURRENT)
+ *   - Fixed a bug when enablePin was not in use but placeholder pin was still controlled.
+ *
+ * 1.0 2019-12-26
+ *   Initial public release
+ */
+
 #ifndef NTCSENSOR_H
 #define NTCSENSOR_H
 
