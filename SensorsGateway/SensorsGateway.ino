@@ -652,7 +652,7 @@ void readIds() {
 }
 
 void updateLastReceived() {
-  uint16_t currentTime = millis() / 60000; // Convert into minutes
+  uint32_t currentTime = millis() / 60000UL; // Convert into minutes
   gwMetaData.nodesDuringLastHour = 0;
   gwMetaData.nodesDuringLast12Hours = 0;
   gwMetaData.nodesDuringLast24Hours = 0;
