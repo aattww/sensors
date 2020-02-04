@@ -421,6 +421,11 @@ Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_mo
 
 # Version history
 
+## v1.0.2 (2020-02-04)
+
+* Fixed overflow bug in gateway uptime calculation after 45 days.
+* Added image of a wired Si7021 breakout board.
+
 ## v1.0.1 (2019-12-29)
 
 * Fixed a bug in NTCSensor library where enable pin was controlled even though it was not in actual use, possibly interfering with serial communication.
