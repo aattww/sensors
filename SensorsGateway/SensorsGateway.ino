@@ -61,7 +61,7 @@
 
 
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 2
+#define MINOR_VERSION 3
 
 #include <SimpleModbusAsync.h>
 #include <RH_RF95.h>
