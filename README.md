@@ -72,6 +72,8 @@ You could set the necessary fuses manually but it is considerably easier to just
 
 Gateway collects data from nodes and acts as an relay to a [Modbus](https://en.wikipedia.org/wiki/Modbus) network. By using Maxim Integrated MAX3485 RS-485 transceiver gateway can be connected to an existing RS-485 Modbus RTU network as a slave. Omitting the transceiver provides a direct TTL serial port. This can be accessed with, for example, another Arduino board, FTDI chip or connected directly to a Raspberry Pi. Regardless of the physical connection, gateway is accessed using Modbus protocol. Gateway requires regulated 3.3 volts or (unregulated) 5-12 volts DC power supply. In addition, gateway has three pulse inputs (pulse values are periodically saved to EEPROM and restored on power-up), one of which can be used as an NTC thermistor input. These inputs are also accessible via Modbus.
 
+One drawback of Modbus protocol is that a slave can not inform the master of new messages. For this, pulse 2 can be enabled to work as an external interrupt. This pin behaves like an emulated open collector output (external high state voltage is limited to 3.3 volts, however). The pin will be pulled to ground when a message is received either from an *important* node or any node, depending on the gateway settings. After Modbus read has been done, this pin will be set back to high impedance state.
+
 <p align="center"><img src="images/gateway_pcb.png" width="75%" /></p>
 
 **Warning:** UART serial port is 3.3 volts, so don't connect it to a 5 volt system.
