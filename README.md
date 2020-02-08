@@ -33,7 +33,7 @@ Skip directly to [Instructions](#instructions), although I strongly recommend re
     * [Gateway](#gateway-1)
     * [Battery](#battery-2)
     * [Pulse / Pulse with Kamstrup Multical](#pulse--pulse-with-kamstrup-multical)
-  * [Headers, terminals and buttons](#headers--terminals-and-buttons)
+  * [Headers, terminals and buttons](#headers-terminals-and-buttons)
     * [Gateway](#gateway-2)
     * [Battery](#battery-3)
     * [Pulse / Pulse with Kamstrup Multical](#pulse--pulse-with-kamstrup-multical-1)
