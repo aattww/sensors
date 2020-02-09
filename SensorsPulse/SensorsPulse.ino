@@ -85,7 +85,7 @@
  */
 
 
-#define VERSION 2
+#define VERSION 3
 
 #if defined NODE_TYPE_MULTICAL
 #include <SimpleModbusAsync.h>
@@ -154,6 +154,7 @@ uint8_t transmitInterval; // How often should gateway expect transmit (in minute
 
 bool previousTransmitOk = false; // Was previous transmit successful
 bool hasFailedTransmit = false; // Is there at least one failed transmit (for decreasing transmit power faster after boot up)
+bool isImportant = false; // When node is marked important, it triggers gateway to set external interrupt
 bool isDebugMode = false;
 volatile bool forceSend = false;
 uint8_t nodeId; // Node ID
@@ -194,11 +195,28 @@ void setup() {
   // LED
   pinMode(LED_PIN, OUTPUT);
   
-  // Blink led to indicate startup and fw version
-  startUp();
-  
   // Button
   pinMode(BTN_PIN, INPUT_PULLUP);
+  
+  // Jumper J1
+  pinMode(JMP_PIN, INPUT_PULLUP);
+  
+  // Let inputs stabilize
+  delay(10);
+  
+  // Enter programming mode (currently does nothing) if button is pressed. Also set debug mode.
+  if (!digitalRead(BTN_PIN)) {
+    enterProgMode();
+    isDebugMode = true;
+  }
+  
+  // Set node important if jumper is set
+  if (!digitalRead(JMP_PIN)) {
+    isImportant = true;
+  }
+  
+  // Blink led to indicate startup and fw version
+  startUp();
   
   // Pulse inputs
   pinMode(P1_PIN, INPUT_PULLUP);
@@ -207,18 +225,16 @@ void setup() {
     pinMode(P3_PIN, INPUT_PULLUP);
   }
   
-  // Enter programming mode if jumper is set. Also set debug mode.
-  pinMode(JMP_PIN, INPUT_PULLUP);
-  delay(5);
-  if (!digitalRead(JMP_PIN)) {
-    enterProgMode();
-    isDebugMode = true;
-    
-    // If also button is pressed, clear pulse values from EEPROM
-    if (!digitalRead(BTN_PIN)) {
-      clearPulsesFromEEPROM();
-    }
+  // Delay so that if button was pressed for debug mode but EEPROM is not to be cleared,
+  // user has some time to release the button.
+  delay(1000);
+  
+  // If jumper is set and button pressed, clear pulse values from EEPROM.
+  if (!digitalRead(JMP_PIN) && !digitalRead(BTN_PIN)) {
+    clearPulsesFromEEPROM();
   }
+  
+  // Set pin to hi-Z to cut leaking current through jumper
   pinMode(JMP_PIN, INPUT);
 
   // Calculate proper timings
