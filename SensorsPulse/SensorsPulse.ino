@@ -369,6 +369,11 @@ bool constructAndSendPacket() {
   #elif defined NODE_TYPE_PULSE
   payloadBuffer[0] = B00000011;
   #endif
+  
+  if (isImportant) {
+    payloadBuffer[0] |= B00100000;
+  }
+  
   payloadBuffer[1] = transmitPowerRaw;
   payloadBuffer[2] = transmitInterval;
   
