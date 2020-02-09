@@ -158,6 +158,7 @@ struct {
   volatile uint32_t pulse3;
   bool outOfMemory;
   uint16_t uptime;
+  uint8_t lastRcvdNode;
 } gwMetaData;
 
 // Various variables
@@ -374,6 +375,9 @@ void checkRadio() {
           // Blink led to indicate received and successfully saved message
           setBlink(1);
           
+          // Set last received node id to gateway metadata
+          gwMetaData.lastRcvdNode = from;
+          
           // Set external interrupt pin if it is in use
           #ifdef ENABLE_EXT_INTERRUPT
             // If pin is to be used only with nodes marked as important
@@ -448,7 +452,7 @@ void checkModbus() {
     // Calculate how many registers it is possible to read based on type
     uint8_t maxNrOfRegistersToRead = 0;
     if (requestedType == 0) {
-      maxNrOfRegistersToRead = 20;
+      maxNrOfRegistersToRead = 21;
     }
     else if (requestedType == 1) {
       maxNrOfRegistersToRead = 8;
@@ -504,6 +508,8 @@ void checkModbus() {
       payloadBuffer[37] = (gwMetaData.pulse3 >> 16);
       payloadBuffer[38] = (gwMetaData.pulse3 >> 8);
       payloadBuffer[39] = gwMetaData.pulse3;
+      payloadBuffer[40] = 0;
+      payloadBuffer[41] = gwMetaData.lastRcvdNode;
     }
     // Battery type
     else if (requestedType == 1) {
