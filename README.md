@@ -82,7 +82,7 @@ Why Modbus? Modbus is an easy to use and integrate protocol for this kind of dat
 
 ## Modbus registers
 
-Registers can be accessed using either function code 3 (read holding registers) or 4 (read input registers). Both return the same register values. Note that registers not defined can not be read. For example, trying to read registers 20-99 or 108-199 will return *illegal data address exception*.
+Registers can be accessed using either function code 3 (read holding registers) or 4 (read input registers). Both return the same register values. Note that registers not defined can not be read. For example, trying to read registers 21-99 or 108-199 will return *illegal data address exception*.
 
 ### Gateway specific registers
 
@@ -105,6 +105,7 @@ Registers can be accessed using either function code 3 (read holding registers) 
 | 14       | 30015  | Pulse 1 | Counter | 32 bit |
 | 16       | 30017  | Pulse 2 | Counter | 32 bit |
 | 18       | 30019  | Pulse 3 / Temperature | Counter / °C | 32 bit |
+| 20       | 30021  | Last received node ID |  |  |
 
 Status register bits (from LSB to MSB):
 * Bit 0 **External SRAM:** *1* if gateway has external SRAM, *0* if using internal SRAM. Affects maximum number of nodes, see notes in [Schematics and PCB](#schematics-and-pcb).
@@ -368,12 +369,12 @@ Boards have a couple of user settable headers. These need to be set before board
 #### Headers
 
 * **TERM** is 120 Ohm RS-485 termination resistor. Short if the gateway is in the very end of a long RS-485 line.
-* **J1** is currently not in use.
+* **J1** is currently not in normal use. See below for clearing old pulse values from EEPROM.
 * **NODE ID** sets 5 bit Modbus slave address.
 
 #### Button
 
-Button in gateway is currently not in use in normal operation. However, if you short **J1** and hold the button while powering on the gateway, saved pulse values will be set to zero.
+Button in gateway is currently not in use in normal operation. However, if you short **J1** and hold the button while powering on the gateway, saved pulse values in EEPROM will be set to zero.
 
 #### Terminals
 
@@ -388,24 +389,28 @@ Button in gateway is currently not in use in normal operation. However, if you s
 
 #### Headers
 
-* **J1** puts a node in *debug mode*. In this mode, the node sends new values every 8 seconds with full power and also blinks the LED indicating success. Do not use in long-term as this will drain batteries quickly.
+* **J1** marks a node *important*. When a node declares itself important to gateway, the gateway sets external interrupt pin to inform upstream device of received messages from important nodes.
 * **NODE ID** sets 6 bit address in radio network. Every node has to have a unique address.
 
 #### Button
 
-Button triggers instant send with full power and blinks the LED indicating success. Use to quickly test if the node is within gateway's range.
+If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds with full power and also blinks the LED indicating success. Do not use in long-term as this will drain batteries quickly. Power cycle the node to cancel debug mode.
+
+During normal operation button triggers instant send with full power and blinks the LED indicating success. Use to quickly test if the node is within gateway's range.
 
 ### Pulse / Pulse with Kamstrup Multical
 
 #### Headers
 
-* **TERM** is 120 Ohm RS-485 termination resistor. Short if the gateway is in the very end of a long RS-485 line.
-* **J1** puts a node in *debug mode*. In this mode, the node sends new values every 8 seconds with full power. Do not use in long-term as this will unnecessarily congest radio network.
+* **TERM** is 120 Ohm RS-485 termination resistor. Short if the node is in the very end of a long RS-485 line.
+* **J1** marks a node *important*. When a node declares itself important to gateway, the gateway sets external interrupt pin to inform upstream device of received messages from important nodes.
 * **NODE ID** sets 5 bit address in radio network. Every node has to have a unique address.
 
 #### Button
 
-Button triggers instant send with full power. Use to quickly test if the node is within gateway's range. In addition, if you short **J1** and hold the button while powering on the node, saved pulse values will be set to zero.
+If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds with full power. Do not use in long-term as this will unnecessarily congest radio network.
+
+During normal operation button triggers instant send with full power. Use to quickly test if the node is within gateway's range. In addition, if you short **J1** and hold the button while powering on the node, saved pulse values in EEPROM will be set to zero.
 
 #### Terminals
 
