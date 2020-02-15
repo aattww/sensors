@@ -227,7 +227,7 @@ void setup() {
   
   // Delay so that if button was pressed for debug mode but EEPROM is not to be cleared,
   // user has some time to release the button.
-  delay(1000);
+  delay(2000);
   
   // If jumper is set and button pressed, clear pulse values from EEPROM.
   if (!digitalRead(JMP_PIN) && !digitalRead(BTN_PIN)) {
