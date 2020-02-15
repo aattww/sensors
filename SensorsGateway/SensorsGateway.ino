@@ -64,9 +64,9 @@
  * Define EXT_INTERRUPT_USE_INT_PULLUP to use internal (weak) Atmega328P pull-up resistor, otherwise
  * make sure to have pull-up resistor in the upstream device.
  */
-#define ENABLE_EXT_INTERRUPT
-#define EXT_INTERRUPT_ONLY_IMPORTANT
-#define EXT_INTERRUPT_USE_INT_PULLUP
+//#define ENABLE_EXT_INTERRUPT
+//#define EXT_INTERRUPT_ONLY_IMPORTANT
+//#define EXT_INTERRUPT_USE_INT_PULLUP
 
 /*
  * ####################
