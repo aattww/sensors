@@ -362,7 +362,7 @@ Pulse nodes share the same board as gateway so they also have three LEDs. *PWR* 
 
 ## Headers, terminals and buttons
 
-Boards have a couple of user settable headers. These need to be set before boards are powered. Each device also has one button. In addition, gateway and pulse nodes have screw terminals.
+Boards have a couple of user settable headers. These need to be set before boards are powered. Each device also has one button. In addition, gateway and pulse nodes have screw terminals for power, serial communications and pulse inputs.
 
 ### Gateway
 
@@ -382,7 +382,7 @@ Button in gateway is currently not in use in normal operation. However, if you s
 * **A/RX** and **B/TX** are UART/RS-485 serial terminals.
 * Two **GND**s can be used as grounds for pulse inputs.
 * **P1** is the pulse 1 input.
-* **P2** is the pulse 2 input or external interrupt output, depending on the settings.
+* **P2** is the pulse 2 input or external interrupt output (active low open drain), depending on the settings.
 * **P3/NTC** is the pulse 3 input or NTC thermistor input, depending on the settings.
 
 ### Battery
@@ -394,7 +394,7 @@ Button in gateway is currently not in use in normal operation. However, if you s
 
 #### Button
 
-If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds with full power and also blinks the LED indicating success. Do not use in long-term as this will drain batteries quickly. Power cycle the node to cancel debug mode.
+If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds and also blinks the LED indicating success. Do not use in long-term as this will drain batteries quickly. Power cycle the node to cancel debug mode.
 
 During normal operation button triggers instant send with full power and blinks the LED indicating success. Use to quickly test if the node is within gateway's range.
 
@@ -408,7 +408,7 @@ During normal operation button triggers instant send with full power and blinks 
 
 #### Button
 
-If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds with full power. Do not use in long-term as this will unnecessarily congest radio network.
+If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds. Do not use in long-term as this will unnecessarily congest radio network.
 
 During normal operation button triggers instant send with full power. Use to quickly test if the node is within gateway's range. In addition, if you short **J1** and hold the button while powering on the node, saved pulse values in EEPROM will be set to zero.
 
