@@ -474,6 +474,13 @@ Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_mo
 
 # Version history
 
+## v1.1.0 (2020-02-15)
+
+* Pulse 2 in gateways can be configured as an external interrupt (active low open drain) which informs upstream device of a new message. See gateway settings for more information.
+* Battery and pulse nodes have a new *important* mode set by the jumper **J1**. Setting this mode will trigger gateway to set external interrupt when an *important* node sends new messages.
+* ID of the last received node added to gateway Modbus registers.
+* Changed some button and header functions. See [Headers, terminals and buttons](#headers-terminals-and-buttons).
+
 ## v1.0.2 (2020-02-04)
 
 * Fixed overflow bug in gateway uptime calculation after 45 days.
