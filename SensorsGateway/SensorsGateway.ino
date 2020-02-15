@@ -54,6 +54,21 @@
 #define DELETE_OLD_NODES  0
 
 /*
+ * ### EXTERNAL INTERRUPT ###
+ *
+ * Select if pulse 2 is used as an open drain active low output to inform upstream device of new messages.
+ *
+ * Define ENABLE_EXT_INTERRUPT if you want this feature to be enabled, otherwise comment it out.
+ * Define EXT_INTERRUPT_ONLY_IMPORTANT if you want that only nodes which declare themselves as important
+ * trigger external interrupt. Otherwise every new message will trigger the interrupt.
+ * Define EXT_INTERRUPT_USE_INT_PULLUP to use internal (weak) Atmega328P pull-up resistor, otherwise
+ * make sure to have pull-up resistor in the upstream device.
+ */
+//#define ENABLE_EXT_INTERRUPT
+//#define EXT_INTERRUPT_ONLY_IMPORTANT
+//#define EXT_INTERRUPT_USE_INT_PULLUP
+
+/*
  * ####################
  * ### END SETTINGS ###
  * ####################
@@ -61,7 +76,7 @@
 
 
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 3
+#define MINOR_VERSION 4
 
 #include <SimpleModbusAsync.h>
 #include <RH_RF95.h>
@@ -143,6 +158,7 @@ struct {
   volatile uint32_t pulse3;
   bool outOfMemory;
   uint16_t uptime;
+  uint8_t lastRcvdNode;
 } gwMetaData;
 
 // Various variables
@@ -178,7 +194,9 @@ void setup() {
   
   // Pulse inputs
   pinMode(P1_PIN, INPUT_PULLUP);
+  #ifndef ENABLE_EXT_INTERRUPT
   pinMode(P2_PIN, INPUT_PULLUP);
+  #endif
   if (!hasNTC) {
     pinMode(P3_PIN, INPUT_PULLUP);
   }
@@ -220,7 +238,11 @@ void setup() {
   if (!hasNTC) {
     PCICR |= B00000010; // P3 (port C)
   }
+  #ifdef ENABLE_EXT_INTERRUPT
+  PCMSK2 |= B01000000;  // P1
+  #else
   PCMSK2 |= B11000000;  // P1 and P2
+  #endif
   if (!hasNTC) {
     PCMSK1 |= B00000010;  // P3
   }
@@ -232,6 +254,11 @@ void setup() {
   
   // Initialize memory handler
   memoryHandler.init();
+  
+  // Initialize external interrupt pin if in use
+  #ifdef ENABLE_EXT_INTERRUPT
+  setExternalInterrupt(false);
+  #endif
 }
 
 void loop() {
@@ -310,6 +337,9 @@ void checkRadio() {
       
       // If the message was from a known type node, save it to memory
       if (length != 0) {
+        
+        // Check if the node is marked as important
+        bool isImportant = payloadBuffer[0] & B00100000;
 
         // Reuse the same payloadBuffer to save SRAM
         
@@ -344,6 +374,22 @@ void checkRadio() {
           
           // Blink led to indicate received and successfully saved message
           setBlink(1);
+          
+          // Set last received node id to gateway metadata
+          gwMetaData.lastRcvdNode = from;
+          
+          // Set external interrupt pin if it is in use
+          #ifdef ENABLE_EXT_INTERRUPT
+            // If pin is to be used only with nodes marked as important
+            #ifdef EXT_INTERRUPT_ONLY_IMPORTANT
+            if (isImportant) {
+              setExternalInterrupt(true);
+            }
+            // Else always set the pin
+            #else
+            setExternalInterrupt(true);
+            #endif
+          #endif
         }
       }
     }
@@ -406,7 +452,7 @@ void checkModbus() {
     // Calculate how many registers it is possible to read based on type
     uint8_t maxNrOfRegistersToRead = 0;
     if (requestedType == 0) {
-      maxNrOfRegistersToRead = 20;
+      maxNrOfRegistersToRead = 21;
     }
     else if (requestedType == 1) {
       maxNrOfRegistersToRead = 8;
@@ -462,6 +508,8 @@ void checkModbus() {
       payloadBuffer[37] = (gwMetaData.pulse3 >> 16);
       payloadBuffer[38] = (gwMetaData.pulse3 >> 8);
       payloadBuffer[39] = gwMetaData.pulse3;
+      payloadBuffer[40] = 0;
+      payloadBuffer[41] = gwMetaData.lastRcvdNode;
     }
     // Battery type
     else if (requestedType == 1) {
@@ -593,6 +641,11 @@ void checkModbus() {
         
         // Blink led to indicate successful Modbus read
         setBlink(3);
+        
+        // Clear external interrupt pin if it was in use
+        #ifdef ENABLE_EXT_INTERRUPT
+        setExternalInterrupt(false);
+        #endif
       }
       else {
         modbus.sendErrorResponse(functionCode, ERROR_ILLEGAL_ADDRESS);
@@ -774,6 +827,7 @@ ISR(PCINT2_vect) {
     pulse1LastValue = true;
   }
   
+  #ifndef ENABLE_EXT_INTERRUPT
   if (!digitalRead(P2_PIN) && pulse2LastValue) {
     if ((millis() - pulse2LastFall) > (uint32_t)PULSE_MIN) {
       gwMetaData.pulse2++;
@@ -784,11 +838,14 @@ ISR(PCINT2_vect) {
   else if (digitalRead(P2_PIN) && !pulse2LastValue) {
     pulse2LastValue = true;
   }
+  #endif
 }
 
 void savePulsesToEEPROM() {
   EEPROM.put(10, gwMetaData.pulse1);
+  #ifndef ENABLE_EXT_INTERRUPT
   EEPROM.put(20, gwMetaData.pulse2);
+  #endif
   if (!hasNTC) {
     EEPROM.put(30, gwMetaData.pulse3);
   }
@@ -796,7 +853,9 @@ void savePulsesToEEPROM() {
 
 void readPulsesFromEEPROM() {
   EEPROM.get(10, gwMetaData.pulse1);
+  #ifndef ENABLE_EXT_INTERRUPT
   EEPROM.get(20, gwMetaData.pulse2);
+  #endif
   if (!hasNTC) {
     EEPROM.get(30, gwMetaData.pulse3);
   }
@@ -813,6 +872,23 @@ void clearPulsesFromEEPROM() {
 void readNTC() {
   gwMetaData.pulse3 = sensorNTC.readTemperature();
 }
+
+#ifdef ENABLE_EXT_INTERRUPT
+void setExternalInterrupt(bool status) {
+  if (status) {
+    #ifdef EXT_INTERRUPT_USE_INT_PULLUP
+    digitalWrite(P2_PIN, LOW);
+    #endif
+    pinMode(P2_PIN, OUTPUT);
+  }
+  else {
+    pinMode(P2_PIN, INPUT);
+    #ifdef EXT_INTERRUPT_USE_INT_PULLUP
+    digitalWrite(P2_PIN, HIGH);
+    #endif
+  }
+}
+#endif
 
 void startUp() {
   digitalWrite(LED_PIN, HIGH);

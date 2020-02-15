@@ -91,7 +91,7 @@
  */
 
 
-#define VERSION 1
+#define VERSION 2
 
 #include <RH_RF95.h>
 #include <RHReliableDatagram.h>
@@ -161,6 +161,7 @@ uint8_t transmitInterval; // How often should gateway expect transmit (in minute
 uint16_t lastTransmittedCycles; // Sleep cycles from last transmitted packet
 bool previousTransmitOk = false; // Was previous transmit successful
 bool hasFailedTransmit = false; // Is there at least one failed transmit (for decreasing transmit power faster after boot up)
+bool isImportant = false; // When node is marked important, it triggers gateway to set external interrupt
 
 bool isDebugMode = false;
 bool isThresholdMode = false;
@@ -185,20 +186,31 @@ void setup() {
   // LED
   pinMode(LED_PIN, OUTPUT);
   
-  // Blink led to indicate startup and fw version
-  startUp();
-  
   // Button
   pinMode(BTN_PIN, INPUT_PULLUP);
   
-  // Enter programming mode if jumper is set. Also set debug mode.
+  // Jumper J1
   pinMode(JMP_PIN, INPUT_PULLUP);
+  
+  // Let inputs stabilize
   delay(10);
-  if (!digitalRead(JMP_PIN)) {
+  
+  // Enter programming mode (currently does nothing) if button is pressed. Also set debug mode.
+  if (!digitalRead(BTN_PIN)) {
     enterProgMode();
     isDebugMode = true;
   }
+  
+  // Set node important if jumper is set
+  if (!digitalRead(JMP_PIN)) {
+    isImportant = true;
+  }
+  
+  // Set pin to hi-Z to save power (otherwise jumper leaks current)
   pinMode(JMP_PIN, INPUT);
+  
+  // Blink led to indicate startup and fw version
+  startUp();
 
   // Determine which sensor is connected
   // Possible options are SI7021, BME280, NTC or SI7021+NTC
@@ -302,6 +314,7 @@ bool constructAndSendPacket() {
   readBatteryVoltage();
   
   // Construct payload
+  
   if (sensorMode == MODE_SI7021) {
     payloadBuffer[0] = B00010001;
   }
@@ -314,6 +327,11 @@ bool constructAndSendPacket() {
   else if (sensorMode == (MODE_SI7021 | MODE_NTC)) {
     payloadBuffer[0] = B00010110;
   }
+  
+  if (isImportant) {
+    payloadBuffer[0] |= B00100000;
+  }
+  
   payloadBuffer[1] = batteryVoltage >> 8;
   payloadBuffer[2] = batteryVoltage;
   payloadBuffer[3] = transmitPowerRaw;

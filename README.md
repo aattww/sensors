@@ -33,7 +33,7 @@ Skip directly to [Instructions](#instructions), although I strongly recommend re
     * [Gateway](#gateway-1)
     * [Battery](#battery-2)
     * [Pulse / Pulse with Kamstrup Multical](#pulse--pulse-with-kamstrup-multical)
-  * [Headers and buttons](#headers-and-buttons)
+  * [Headers, terminals and buttons](#headers-terminals-and-buttons)
     * [Gateway](#gateway-2)
     * [Battery](#battery-3)
     * [Pulse / Pulse with Kamstrup Multical](#pulse--pulse-with-kamstrup-multical-1)
@@ -72,6 +72,8 @@ You could set the necessary fuses manually but it is considerably easier to just
 
 Gateway collects data from nodes and acts as an relay to a [Modbus](https://en.wikipedia.org/wiki/Modbus) network. By using Maxim Integrated MAX3485 RS-485 transceiver gateway can be connected to an existing RS-485 Modbus RTU network as a slave. Omitting the transceiver provides a direct TTL serial port. This can be accessed with, for example, another Arduino board, FTDI chip or connected directly to a Raspberry Pi. Regardless of the physical connection, gateway is accessed using Modbus protocol. Gateway requires regulated 3.3 volts or (unregulated) 5-12 volts DC power supply. In addition, gateway has three pulse inputs (pulse values are periodically saved to EEPROM and restored on power-up), one of which can be used as an NTC thermistor input. These inputs are also accessible via Modbus.
 
+One drawback of Modbus protocol is that a slave can not inform the master of new messages. For this, pulse 2 can be enabled to work as an external interrupt. This pin behaves like an emulated open collector output (external high state voltage is limited to 3.3 volts, however). The pin will be pulled to ground when a message is received either from an *important* node or any node, depending on the gateway settings. After Modbus read has been done, this pin will be set back to high impedance state.
+
 <p align="center"><img src="images/gateway_pcb.png" width="75%" /></p>
 
 **Warning:** UART serial port is 3.3 volts, so don't connect it to a 5 volt system.
@@ -80,7 +82,7 @@ Why Modbus? Modbus is an easy to use and integrate protocol for this kind of dat
 
 ## Modbus registers
 
-Registers can be accessed using either function code 3 (read holding registers) or 4 (read input registers). Both return the same register values. Note that registers not defined can not be read. For example, trying to read registers 20-99 or 108-199 will return *illegal data address exception*.
+Registers can be accessed using either function code 3 (read holding registers) or 4 (read input registers). Both return the same register values. Note that registers not defined can not be read. For example, trying to read registers 21-99 or 108-199 will return *illegal data address exception*.
 
 ### Gateway specific registers
 
@@ -103,6 +105,7 @@ Registers can be accessed using either function code 3 (read holding registers) 
 | 14       | 30015  | Pulse 1 | Counter | 32 bit |
 | 16       | 30017  | Pulse 2 | Counter | 32 bit |
 | 18       | 30019  | Pulse 3 / Temperature | Counter / °C | 32 bit |
+| 20       | 30021  | Last received node ID |  |  |
 
 Status register bits (from LSB to MSB):
 * Bit 0 **External SRAM:** *1* if gateway has external SRAM, *0* if using internal SRAM. Affects maximum number of nodes, see notes in [Schematics and PCB](#schematics-and-pcb).
@@ -118,10 +121,17 @@ First address is *node id * 100*. For example, this table shows addresses for a 
 | 101       | 30102  | Battery voltage | mV | Current battery voltage. |
 | 102       | 30103  | Transmit power | % | Relative transmit power. |
 | 103       | 30104  | Transmit interval | Minute | How often the node transmits at least. |
-| 104       | 30105  | Header |  | Only 8 LSB, debug data. |
+| 104       | 30105  | Header |  | Only 8 LSB, debug data. See below for bits. |
 | 105       | 30106  | Temperature | °C | ×10 |
 | 106       | 30107  | Relative humidity | RH% | ×10. **Only if node has Si7021 or BME280.** |
 | 107       | 30108  | Barometric pressure / Temperature | hPa / °C | ×10. **Pressure if node has BME280, temperature if node has both Si7021 and NTC.** |
+
+Header register bits (from LSB to MSB):
+* Bit 0-2 **Node type:** Internal definiton of the node type.
+* Bit 3 **Reserved**
+* Bit 4 **Battery-powered:** *1* if node is battery-powered, *0* if powered externally.
+* Bit 5 **Important:** *1* if node has declared itself important, *0* if not.
+* Bit 6-7 **Reserved**
 
 ### Pulse node specific registers
 
@@ -132,10 +142,17 @@ First address is *node id * 100*. For example, this table shows addresses for a 
 | 200       | 30201  | Last received | Minute | When was node last seen. |
 | 201       | 30202  | Transmit power | % | Relative transmit power. |
 | 202       | 30203  | Transmit interval | Minute | How often the node transmits at least. |
-| 203       | 30204  | Header |  | Only 8 LSB, debug data. |
+| 203       | 30204  | Header |  | Only 8 LSB, debug data. See below for bits. |
 | 204       | 30205  | Pulse 1 | Counter | 32 bit |
 | 206       | 30207  | Pulse 2 | Counter | 32 bit |
 | 208       | 30209  | Pulse 3 / Temperature | Counter / °C | 32 bit |
+
+Header register bits (from LSB to MSB):
+* Bit 0-2 **Node type:** Internal definiton of the node type.
+* Bit 3 **Reserved**
+* Bit 4 **Battery-powered:** *1* if node is battery-powered, *0* if powered externally.
+* Bit 5 **Important:** *1* if node has declared itself important, *0* if not.
+* Bit 6-7 **Reserved**
 
 ### Pulse node with Kamstrup Multical 602 energy meter specific registers
 
@@ -146,7 +163,7 @@ First address is *node id * 100*. For example, this table shows addresses for a 
 | 300       | 30301  | Last received | Minute | When was node last seen. |
 | 301       | 30302  | Transmit power | % | Relative transmit power. |
 | 302       | 30303  | Transmit interval | Minute | How often the node transmits at least. |
-| 303       | 30304  | Header |  | Only 8 LSB, debug data. |
+| 303       | 30304  | Header |  | Only 8 LSB, debug data. See below for bits. |
 | 304       | 30305  | Pulse 1 | Counter | 32 bit |
 | 306       | 30307  | Pulse 2 | Counter | 32 bit |
 | 308       | 30309  | Pulse 3 / Temperature | Counter / °C | 32 bit |
@@ -156,6 +173,13 @@ First address is *node id * 100*. For example, this table shows addresses for a 
 | 316       | 30317  | Actual power | kW | ×10. 32 bit |
 | 318       | 30319  | Actual t₁ | °C | ×100. 32 bit |
 | 320       | 30321  | Actual t₂ | °C | ×100. 32 bit |
+
+Header register bits (from LSB to MSB):
+* Bit 0-2 **Node type:** Internal definiton of the node type.
+* Bit 3 **Reserved**
+* Bit 4 **Battery-powered:** *1* if node is battery-powered, *0* if powered externally.
+* Bit 5 **Important:** *1* if node has declared itself important, *0* if not.
+* Bit 6-7 **Reserved**
 
 # Node types
 
@@ -336,37 +360,66 @@ Pulse nodes share the same board as gateway so they also have three LEDs. *PWR* 
 | 3 | - | Successful Modbus read. | Operation |  |
 | 4 | - | Failed Modbus read. | Operation |  |
 
-## Headers and buttons
+## Headers, terminals and buttons
 
-Boards have a couple of user settable headers. These need to be set before boards are powered. Each device also has one button.
+Boards have a couple of user settable headers. These need to be set before boards are powered. Each device also has one button. In addition, gateway and pulse nodes have screw terminals for power, serial communications and pulse inputs.
 
 ### Gateway
 
-**TERM** is 120 Ohm RS-485 termination resistor. Short if the gateway is in the very end of a long RS-485 line.
+#### Headers
 
-**J1** is currently not in use.
+* **TERM** is 120 Ohm RS-485 termination resistor. Short if the gateway is in the very end of a long RS-485 line.
+* **J1** is currently not in normal use. See below for clearing old pulse values from EEPROM.
+* **NODE ID** sets 5 bit Modbus slave address.
 
-**NODE ID** sets 5 bit Modbus slave address.
+#### Button
 
-**Button** is currently not in use.
+Button in gateway is currently not in use in normal operation. However, if you short **J1** and hold the button while powering on the gateway, saved pulse values in EEPROM will be set to zero.
+
+#### Terminals
+
+* **+** and **-** are the 5-12 volts DC power inputs.
+* **A/RX** and **B/TX** are UART/RS-485 serial terminals.
+* Two **GND**s can be used as grounds for pulse inputs.
+* **P1** is the pulse 1 input.
+* **P2** is the pulse 2 input or external interrupt output (active low open drain), depending on the settings.
+* **P3/NTC** is the pulse 3 input or NTC thermistor input, depending on the settings.
 
 ### Battery
 
-**J1** puts a node in *debug mode*. In this mode, the node sends new values every 8 seconds with full power and also blinks the LED indicating success. Do not use in long-term as this will drain batteries quickly.
+#### Headers
 
-**NODE ID** sets 6 bit address in radio network. Every node has to have a unique address.
+* **J1** marks a node *important*. When a node declares itself important to gateway, the gateway sets external interrupt pin to inform upstream device of received messages from important nodes.
+* **NODE ID** sets 6 bit address in radio network. Every node has to have a unique address.
 
-**Button** triggers instant send with full power and blinks the LED indicating success. Use to quickly test if the node is within gateway's range.
+#### Button
+
+If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds and also blinks the LED indicating success. Do not use in long-term as this will drain batteries quickly. Power cycle the node to cancel debug mode.
+
+During normal operation button triggers instant send with full power and blinks the LED indicating success. Use to quickly test if the node is within gateway's range.
 
 ### Pulse / Pulse with Kamstrup Multical
 
-**TERM** is 120 Ohm RS-485 termination resistor. Short if the gateway is in the very end of a long RS-485 line.
+#### Headers
 
-**J1** puts a node in *debug mode*. In this mode, the node sends new values every 8 seconds with full power. Do not use in long-term as this will unnecessarily congest radio network.
+* **TERM** is 120 Ohm RS-485 termination resistor. Short if the node is in the very end of a long RS-485 line.
+* **J1** marks a node *important*. When a node declares itself important to gateway, the gateway sets external interrupt pin to inform upstream device of received messages from important nodes.
+* **NODE ID** sets 5 bit address in radio network. Every node has to have a unique address.
 
-**NODE ID** sets 5 bit address in radio network. Every node has to have a unique address.
+#### Button
 
-**Button** triggers instant send with full power. Use to quickly test if the node is within gateway's range.
+If button is pressed while applying power, a node is put into *debug mode*. In this mode, the node sends new values every 8 seconds. Do not use in long-term as this will unnecessarily congest radio network.
+
+During normal operation button triggers instant send with full power. Use to quickly test if the node is within gateway's range. In addition, if you short **J1** and hold the button while powering on the node, saved pulse values in EEPROM will be set to zero.
+
+#### Terminals
+
+* **+** and **-** are the 5-12 volts DC power inputs.
+* **A/RX** and **B/TX** are UART/RS-485 serial terminals.
+* Two **GND**s can be used as grounds for pulse inputs.
+* **P1** is the pulse 1 input.
+* **P2** is the pulse 2 input.
+* **P3/NTC** is the pulse 3 input or NTC thermistor input, depending on the settings.
 
 # Instructions
 
