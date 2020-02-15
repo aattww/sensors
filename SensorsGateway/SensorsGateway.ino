@@ -56,7 +56,7 @@
 /*
  * ### EXTERNAL INTERRUPT ###
  *
- * Select if pulse 2 is used as an interrupt to inform upstream device of new messages.
+ * Select if pulse 2 is used as an open drain active low output to inform upstream device of new messages.
  *
  * Define ENABLE_EXT_INTERRUPT if you want this feature to be enabled, otherwise comment it out.
  * Define EXT_INTERRUPT_ONLY_IMPORTANT if you want that only nodes which declare themselves as important
