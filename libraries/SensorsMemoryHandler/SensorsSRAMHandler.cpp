@@ -29,6 +29,17 @@
  * This class handles memory by providing abstraction to save and restore node data.
  */
 
+/*
+ * Version history
+ * ---------------
+ *
+ * 1.1 2020-03-15 (CURRENT)
+ *   - Fixed a possible problem caused by not checking memory allocation for success.
+ *
+ * 1.0 2019-12-26
+ *   Initial public release
+ */
+
 #include "SensorsSRAMHandler.h"
 
 /*
@@ -40,13 +51,25 @@
  */
 void SensorsSRAMHandler::init() {
   for (uint8_t i = 0; i < POOL_CHUNKS; i++) {
-    // Allocate memory for chunks
+    // Allocate memory for a chunk
     uint8_t* chunk = (uint8_t*)calloc(POOL_CHUNK_RAW_SIZE, sizeof(uint8_t));
-    _dataPool[i] = chunk;
+    // Check that memory was actually allocated
+    if (chunk != NULL) {
+      // Add chunk to pool
+      _dataPool[i] = chunk;
+      _nrOfChunks++;
+    }
+    // If failed to allocate new memory, no reason to keep trying
+    else {
+      break;
+    }
   }
   
-  _freeChunks = POOL_CHUNKS;
-  _initialized = true;
+  // If we have allocated chunks
+  if (_nrOfChunks > 0) {
+    _freeChunks = _nrOfChunks;
+    _initialized = true;
+  }
 }
 
 /*
@@ -60,7 +83,7 @@ uint8_t* SensorsSRAMHandler::allocateDataChunk() {
     return NULL;
   }
   
-  for (uint8_t i = 0; i < POOL_CHUNKS; i++) {
+  for (uint8_t i = 0; i < _nrOfChunks; i++) {
     // The first byte indicates node ID and can not be zero, meaning that chunk is currently not in use.
     if (_dataPool[i][0] == 0) {
       _freeChunks--;
@@ -84,7 +107,7 @@ void SensorsSRAMHandler::deallocateDataChunk(uint8_t* chunk) {
     return;
   }
   
-  for (uint8_t i = 0; i < POOL_CHUNKS; i++) {
+  for (uint8_t i = 0; i < _nrOfChunks; i++) {
     if (_dataPool[i] == chunk) {
       _freeChunks++;
       // Clear the first byte (node ID) to indicate free chunk
@@ -177,7 +200,7 @@ uint8_t SensorsSRAMHandler::getNodeHeader(uint8_t nodeId) {
     return 0;
   }
   
-  for (uint8_t i = 0; i < POOL_CHUNKS; i++) {
+  for (uint8_t i = 0; i < _nrOfChunks; i++) {
     if (_dataPool[i][0] == nodeId) {
       // If this is the first chunk of node data (ie. it has the header)
       if (_dataPool[i][1] == 0) {
@@ -204,7 +227,7 @@ void SensorsSRAMHandler::deleteNode(uint8_t nodeId) {
   }
   
   // Search every chunk associated to node ID
-  for (uint8_t i = 0; i < POOL_CHUNKS; i++) {
+  for (uint8_t i = 0; i < _nrOfChunks; i++) {
     if (_dataPool[i][0] == nodeId) {
       deallocateDataChunk(_dataPool[i]);
     }
@@ -248,7 +271,7 @@ uint8_t SensorsSRAMHandler::getNodeData(uint8_t nodeId, uint8_t length, uint8_t*
   uint8_t bytesWritten = 0;
   
   for (uint8_t chunkNumber = 0; chunkNumber < neededChunks; chunkNumber++) {
-    for (uint8_t i = 0; i < POOL_CHUNKS; i++) {
+    for (uint8_t i = 0; i < _nrOfChunks; i++) {
       if (_dataPool[i][0] == nodeId) {
         if (_dataPool[i][1] == chunkNumber) {
           
