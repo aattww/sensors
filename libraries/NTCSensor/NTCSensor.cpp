@@ -52,7 +52,10 @@
  * Version history
  * ---------------
  *
- * 1.1 2019-12-29 (CURRENT)
+ * 1.2 2020-03-15 (CURRENT)
+ *   - Fixed a possible division by zero error if sensor is missing.
+ *
+ * 1.1 2019-12-29
  *   - Fixed a bug when enablePin was not in use but placeholder pin was still controlled.
  *
  * 1.0 2019-12-26
@@ -186,9 +189,10 @@ int16_t NTCSensor::readTemperature() {
   // Calculate average
   average /= 5.0;
 
-  // In the unlikely event of measuring 0 resistance (sensor is shorted), return invalid value.
+  // In the unlikely event of measuring 0 resistance (sensor is shorted),
+  // or 1023 (sensor is missing completely), return invalid value.
   // This also prevents division by zero error below.
-  if (average == 0.0) {
+  if ((average == 0.0) || (average == 1023.0)) {
     return (-990);
   }
   

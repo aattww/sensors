@@ -52,7 +52,10 @@
  * Version history
  * ---------------
  *
- * 1.1 2019-12-29 (CURRENT)
+ * 1.2 2020-03-15 (CURRENT)
+ *   - Fixed a possible division by zero error if sensor is missing.
+ *
+ * 1.1 2019-12-29
  *   - Fixed a bug when enablePin was not in use but placeholder pin was still controlled.
  *
  * 1.0 2019-12-26
