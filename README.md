@@ -474,6 +474,12 @@ Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_mo
 
 # Version history
 
+## v1.1.1 (2020-##-##)
+
+* Fix and refine NTC sensor reading and calculations in NTCSensor.
+* Fixed a possible memory allocation error in SensorsSRAMHandler.
+* Update GPL to version 3 and bump copyright years to 2020.
+
 ## v1.1.0 (2020-02-15)
 
 * Pulse 2 in gateways can be configured as an external interrupt (active low open drain) which informs upstream device of a new message. See gateway settings for more information.
