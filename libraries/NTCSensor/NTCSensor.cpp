@@ -173,11 +173,11 @@ int16_t NTCSensor::readTemperature() {
     delay(50);
   }
   
-  float average = 0.0;
+  uint16_t rawValues = 0;
  
   // Take 5 samples in a row for averaging
   for (uint8_t i = 0; i < 5; i++) {
-   average += analogRead(_sensorPin);
+   rawValues += analogRead(_sensorPin);
    delay(10);
   }
   
@@ -185,16 +185,17 @@ int16_t NTCSensor::readTemperature() {
   if (_enablePin != NTC_NO_ENABLE_PIN) {
     digitalWrite(_enablePin, LOW);
   }
- 
-  // Calculate average
-  average /= 5.0;
 
-  // In the unlikely event of measuring 0 resistance (sensor is shorted),
-  // or 1023 (sensor is missing completely), return invalid value.
-  // This also prevents division by zero error below.
-  if ((average == 0.0) || (average == 1023.0)) {
+  // In the unlikely event of measuring almost 0 resistance (sensor is shorted),
+  // or almost 1023*5 (sensor is missing completely), return invalid value.
+  // This also prevents possible division by zero error below.
+  if ((rawValues <= 15) || (rawValues >= 1020*5)) {
     return (-990);
   }
+ 
+  // Calculate average
+  float average = rawValues / 5.0;
+
   
   // Convert the value to resistance
   average = 1023.0 / average - 1;
