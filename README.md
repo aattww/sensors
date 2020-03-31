@@ -474,7 +474,7 @@ Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_mo
 
 # Version history
 
-## v1.1.1 (2020-##-##)
+## v1.1.1 (2020-03-31)
 
 * Fix and refine NTC sensor reading and calculations in NTCSensor.
 * Fixed a possible memory allocation error in SensorsSRAMHandler.
