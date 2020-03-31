@@ -153,7 +153,12 @@ uint8_t SensorsSRAMHandler::saveNodeData(uint8_t nodeId, uint8_t length, uint8_t
   deleteNode(nodeId);
   
   // Calculate how many chunks are needed for the amount to be saved
-  uint8_t neededChunks = ceil((double)length / POOL_CHUNK_DATA_SIZE);
+  uint8_t neededChunks = length / POOL_CHUNK_DATA_SIZE; // Floors division...
+  // ... therefore add one more chunk if needed
+  if ((neededChunks * POOL_CHUNK_DATA_SIZE) < length) {
+    neededChunks++;
+  }
+  
   uint8_t start = 0;
   uint8_t end = 0;
   
