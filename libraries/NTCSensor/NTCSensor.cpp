@@ -2,7 +2,7 @@
  * MIT License
  *
  * Original work Copyright (c) 2019 Adafruit
- * Modified work Copyright (c) 2019 aattww (https://github.com/aattww/)
+ * Modified work Copyright (c) 2020 aattww (https://github.com/aattww/)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +52,10 @@
  * Version history
  * ---------------
  *
- * 1.1 2019-12-29 (CURRENT)
+ * 1.2 2020-03-15 (CURRENT)
+ *   - Fixed a possible division by zero error if sensor is missing.
+ *
+ * 1.1 2019-12-29
  *   - Fixed a bug when enablePin was not in use but placeholder pin was still controlled.
  *
  * 1.0 2019-12-26
@@ -170,11 +173,11 @@ int16_t NTCSensor::readTemperature() {
     delay(50);
   }
   
-  float average = 0.0;
+  uint16_t rawValues = 0;
  
   // Take 5 samples in a row for averaging
   for (uint8_t i = 0; i < 5; i++) {
-   average += analogRead(_sensorPin);
+   rawValues += analogRead(_sensorPin);
    delay(10);
   }
   
@@ -182,15 +185,17 @@ int16_t NTCSensor::readTemperature() {
   if (_enablePin != NTC_NO_ENABLE_PIN) {
     digitalWrite(_enablePin, LOW);
   }
- 
-  // Calculate average
-  average /= 5.0;
 
-  // In the unlikely event of measuring 0 resistance (sensor is shorted), return invalid value.
-  // This also prevents division by zero error below.
-  if (average == 0.0) {
+  // In the unlikely event of measuring almost 0 resistance (sensor is shorted),
+  // or almost 1023*5 (sensor is missing completely), return invalid value.
+  // This also prevents possible division by zero error below.
+  if ((rawValues <= 15) || (rawValues >= 1020*5)) {
     return (-990);
   }
+ 
+  // Calculate average
+  float average = rawValues / 5.0;
+
   
   // Convert the value to resistance
   average = 1023.0 / average - 1;

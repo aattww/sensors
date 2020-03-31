@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019 aattww (https://github.com/aattww/)
+ * Copyright (c) 2020 aattww (https://github.com/aattww/)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,17 @@
  *
  * SensorsSRAMHandler implements a simple class to use internal SRAM of the microcontroller.
  * This class handles memory by providing abstraction to save and restore node data.
+ */
+
+/*
+ * Version history
+ * ---------------
+ *
+ * 1.1 2020-03-15 (CURRENT)
+ *   - Fixed a possible problem caused by not checking memory allocation for success.
+ *
+ * 1.0 2019-12-26
+ *   Initial public release
  */
 
 #ifndef SENSORSSRAMHANDLER_H
@@ -59,8 +70,9 @@ class SensorsSRAMHandler {
   private:
 
     uint8_t* _dataPool[POOL_CHUNKS]; // Memory pool for data
-    uint8_t _freeChunks = 0;        // Number of free chunks
-    bool _initialized = false;      // SRAM handler has been initialized
+    uint8_t _freeChunks = 0;         // Number of free chunks
+    uint8_t _nrOfChunks = 0;         // Number of chunks in total
+    bool _initialized = false;       // SRAM handler has been initialized
 
     /*
      * Finds a free data chunk.

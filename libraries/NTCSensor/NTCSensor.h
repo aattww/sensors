@@ -2,7 +2,7 @@
  * MIT License
  *
  * Original work Copyright (c) 2019 Adafruit
- * Modified work Copyright (c) 2019 aattww (https://github.com/aattww/)
+ * Modified work Copyright (c) 2020 aattww (https://github.com/aattww/)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +52,10 @@
  * Version history
  * ---------------
  *
- * 1.1 2019-12-29 (CURRENT)
+ * 1.2 2020-03-15 (CURRENT)
+ *   - Fixed a possible division by zero error if sensor is missing.
+ *
+ * 1.1 2019-12-29
  *   - Fixed a bug when enablePin was not in use but placeholder pin was still controlled.
  *
  * 1.0 2019-12-26
