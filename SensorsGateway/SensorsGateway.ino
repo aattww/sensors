@@ -259,11 +259,7 @@ void setup() {
   radioManager.setRetries(0); // Retries are handled manually
   
   radioDriver.setFrequency(frequency);
-  #if defined(RADIO_RFM95W_96W)
-  radioDriver.setTxPower(TX_MAX_PWR); // 5-23 dBm
-  #elif defined(RADIO_RFM69HW)
-  radioDriver.setTxPower(TX_MAX_PWR); // -2-20 dBm
-  #endif
+  radioDriver.setTxPower(TX_MAX_PWR);
   #if defined(ENABLE_LOW_RATE) && defined(RADIO_RFM95W_96W)
   radioDriver.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
   radioManager.setTimeout(3500);
