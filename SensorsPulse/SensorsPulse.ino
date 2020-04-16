@@ -54,6 +54,15 @@
 #define FREQUENCY     867.6
 
 /*
+ * ### RADIO MODULE ###
+ *
+ * Define which radio module is connected: RFM95/96W or RFM69HW.
+ * Naturally only either one can be defined.
+ */
+//#define RADIO_RFM95W_96W
+#define RADIO_RFM69HW
+
+/*
  * ### RETRIES ###
  *
  * Define how many times to resend message if first transmit fails.
@@ -84,21 +93,34 @@
  * ####################
  */
 
+// Stop compiling if improper radio module setting
+#if defined(RADIO_RFM95W_96W) && defined(RADIO_RFM69HW)
+  #error Only one type of radio module is supported.
+#endif
+#if !defined(RADIO_RFM95W_96W) && !defined(RADIO_RFM69HW)
+  #error No radio module type is defined.
+#endif
 
-#define VERSION 3
+#define VERSION 4
 
 #if defined NODE_TYPE_MULTICAL
 #include <SimpleModbusAsync.h>
 #endif
 
-#include <RH_RF95.h>
+#if defined(RADIO_RFM95W_96W)
+  #include <RH_RF95.h>
+#elif defined(RADIO_RFM69HW)
+  #define RFM69_HW
+  #include <RH_RF69.h>
+#endif
+
 #include <RHReliableDatagram.h>
 #include <EEPROM.h>
 #include <NTCSensor.h>
 
-#ifdef ENCRYPT_KEY
-#include <RHEncryptedDriver.h>
-#include <Speck.h>
+#if defined(ENCRYPT_KEY) && defined(RADIO_RFM95W_96W)
+  #include <RHEncryptedDriver.h>
+  #include <Speck.h>
 #endif
 
 #define LED_PIN         A0
@@ -115,29 +137,39 @@
 #define PAYLOAD_LEN     15
 #endif
 
+// Radio TX power limits
+#if defined(RADIO_RFM95W_96W)
+#define TX_MAX_PWR      23      // RFM95/96
+#define TX_MIN_PWR      5       // RFM95/96
+#elif defined(RADIO_RFM69HW)
+#define TX_MAX_PWR      20      // RFM69HW
+#define TX_MIN_PWR      -2      // RFM69HW
+#endif
 #define GATEWAYID       254
-#define TX_MAX_PWR      23
-#define TX_MIN_PWR      5
 #define PULSE_MIN       1000
 #define EEPROM_SAVE     3600000
 
 /* ### SETTINGS ### */
 const float frequency = FREQUENCY; // Radio transmit frequency (depends on module in use and legislation)
 #ifdef ENCRYPT_KEY
-const uint8_t encryptKey[17] = ENCRYPT_KEY; // Encryption key for communication
+uint8_t encryptKey[17] = ENCRYPT_KEY; // Encryption key for communication
 #endif
 uint8_t maxNrOfSends = RETRIES + 1; // Maximum amount of transmits after which to give in and try again after sleepTime (1-5)
 uint16_t sendInterval = SEND_INTERVAL; // How often to send message in seconds
 /* ### END SETTINGS ### */
 
 // Radio and encryption instances
-RH_RF95 rf95Driver;
-#ifdef ENCRYPT_KEY
+#if defined(RADIO_RFM95W_96W)
+RH_RF95 radioDriver;
+#elif defined(RADIO_RFM69HW)
+RH_RF69 radioDriver;
+#endif
+#if defined(ENCRYPT_KEY) && defined(RADIO_RFM95W_96W)
 Speck cipherDriver;
-RHEncryptedDriver encryptedDriver(rf95Driver, cipherDriver);
+RHEncryptedDriver encryptedDriver(radioDriver, cipherDriver);
 RHReliableDatagram radioManager(encryptedDriver);
 #else
-RHReliableDatagram radioManager(rf95Driver);
+RHReliableDatagram radioManager(radioDriver);
 #endif
 
 #if defined NODE_TYPE_MULTICAL
@@ -159,7 +191,7 @@ bool isDebugMode = false;
 volatile bool forceSend = false;
 uint8_t nodeId; // Node ID
 
-uint8_t transmitPower = (TX_MIN_PWR + TX_MAX_PWR) / 4; // Set initial transmit power to low medium
+int8_t transmitPower = (TX_MIN_PWR + TX_MAX_PWR) / 4; // Set initial transmit power to low medium
 uint8_t transmitPowerRaw = 25;
 
 volatile uint32_t pulse1 = 0;
@@ -249,21 +281,24 @@ void setup() {
   #endif
   
   // Initialize radio
-  #ifdef ENCRYPT_KEY
+  if (!radioManager.init()) {
+    blinkLed(5, true); // If failed to init radio, start blinking led
+  }
+  #if defined(ENCRYPT_KEY) && defined(RADIO_RFM95W_96W)
   cipherDriver.setKey(encryptKey, sizeof(encryptKey)-1); // Discard null character at the end
+  #elif defined(ENCRYPT_KEY) && defined(RADIO_RFM69HW)
+  radioDriver.setEncryptionKey(encryptKey);
   #endif
   radioManager.setThisAddress(nodeId);
-  radioManager.setRetries(0);
+  radioManager.setRetries(0); // Retries are handled manually
   
-  if (!radioManager.init()) {
-    blinkLed(5, true);
-  }
-  rf95Driver.setFrequency(frequency);
-  rf95Driver.setTxPower(transmitPower); // 5-23 dBm
-  #ifdef ENABLE_LOW_RATE
-  rf95Driver.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
+  radioDriver.setFrequency(frequency);
+  radioDriver.setTxPower(transmitPower);
+  #if defined(ENABLE_LOW_RATE) && defined(RADIO_RFM95W_96W)
+  radioDriver.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
   radioManager.setTimeout(3500);
   #endif
+  // DEBUG: ADD LOW RATE SETTING FOR RFM69HW AS WELL
   
   readPulsesFromEEPROM();
   
@@ -426,7 +461,7 @@ bool constructAndSendPacket() {
   
   // If in force mode, set maximum transmit power
   if (forceSend) {
-    rf95Driver.setTxPower(TX_MAX_PWR);
+    radioDriver.setTxPower(TX_MAX_PWR);
     payloadBuffer[1] = 100;
   }
   
@@ -449,7 +484,7 @@ bool constructAndSendPacket() {
   
   // Return to normal transmit power after force send
   if (forceSend) {
-    rf95Driver.setTxPower(transmitPower);
+    radioDriver.setTxPower(transmitPower);
     payloadBuffer[1] = transmitPowerRaw;
   }
   
@@ -500,7 +535,7 @@ void updateTransmitPower(bool lastTransmitOk) {
   transmitPower = map(transmitPowerRaw, 0, 100, TX_MIN_PWR, TX_MAX_PWR);
   
   // Set radio transmit power
-  rf95Driver.setTxPower(transmitPower);
+  radioDriver.setTxPower(transmitPower);
   
   payloadBuffer[1] = transmitPowerRaw;
 }
