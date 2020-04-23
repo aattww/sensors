@@ -29,6 +29,19 @@
  * interfacing with 23K256 by providing abstraction to save and restore node data.
  */
 
+/*
+ * Version history
+ * ---------------
+ *
+ * 1.1 2020-04-21 (CURRENT)
+ *   - Add beginTransaction() and endTransaction() to prevent interrupts interfering
+ *     with transmissions.
+ *   - Stop using transfer16() and use transfer() instead.
+ *
+ * 1.0 2019-12-26
+ *   Initial public release
+ */
+
 #include "Sensors23K256Handler.h"
 
 /*
@@ -102,10 +115,12 @@ void Sensors23K256Handler::setOperatingMode(uint8_t newMode) {
   }
   
   if (newMode != _currentOperatingMode) {
+    SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
     digitalWrite(_slaveSelectPin, LOW);
     SPI.transfer(SMH_WRSR);
     SPI.transfer(newMode);
     digitalWrite(_slaveSelectPin, HIGH);
+    SPI.endTransaction();
     _currentOperatingMode = newMode;
   }
 }
@@ -126,11 +141,14 @@ uint8_t Sensors23K256Handler::readByte(uint16_t address) {
   // Make sure we are in correct operating mode
   setOperatingMode(SMH_BYTE_MODE);
   
+  SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
   digitalWrite(_slaveSelectPin, LOW);
   SPI.transfer(SMH_READ);
-  SPI.transfer16(address);
+  SPI.transfer(address >> 8);
+  SPI.transfer(address);
   uint8_t readByte = SPI.transfer(0);
   digitalWrite(_slaveSelectPin, HIGH);
+  SPI.endTransaction();
   
   return readByte;
 }
@@ -152,11 +170,14 @@ void Sensors23K256Handler::writeByte(uint16_t address, uint8_t writeByte) {
   // Make sure we are in correct operating mode
   setOperatingMode(SMH_BYTE_MODE);
   
+  SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
   digitalWrite(_slaveSelectPin, LOW);
   SPI.transfer(SMH_WRITE);
-  SPI.transfer16(address);
+  SPI.transfer(address >> 8);
+  SPI.transfer(address);
   SPI.transfer(writeByte);
   digitalWrite(_slaveSelectPin, HIGH);
+  SPI.endTransaction();
 }
 
 /*
@@ -177,15 +198,18 @@ void Sensors23K256Handler::readSequence(uint16_t address, uint16_t length, uint8
   // Make sure we are in correct operating mode
   setOperatingMode(SMH_SEQUENTIAL_MODE);
   
+  SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
   digitalWrite(_slaveSelectPin, LOW);
   SPI.transfer(SMH_READ);
-  SPI.transfer16(address);
+  SPI.transfer(address >> 8);
+  SPI.transfer(address);
   
   for (uint16_t i = 0; i < length; i++) {
     buffer[i] = SPI.transfer(0);
   }
   
   digitalWrite(_slaveSelectPin, HIGH);
+  SPI.endTransaction();
 }
 
 /*
@@ -206,9 +230,11 @@ void Sensors23K256Handler::writeSequence(uint16_t address, uint16_t length, uint
   // Make sure we are in correct operating mode
   setOperatingMode(SMH_SEQUENTIAL_MODE);
   
+  SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
   digitalWrite(_slaveSelectPin, LOW);
   SPI.transfer(SMH_WRITE);
-  SPI.transfer16(address);
+  SPI.transfer(address >> 8);
+  SPI.transfer(address);
   
   for (uint16_t i = 0; i < length; i++) {
     if (buffer) {
@@ -220,6 +246,7 @@ void Sensors23K256Handler::writeSequence(uint16_t address, uint16_t length, uint
   }
   
   digitalWrite(_slaveSelectPin, HIGH);
+  SPI.endTransaction();
 }
 
 /*
