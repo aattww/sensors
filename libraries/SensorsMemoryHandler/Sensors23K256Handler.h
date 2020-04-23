@@ -29,6 +29,19 @@
  * interfacing with 23K256 by providing abstraction to save and restore node data.
  */
 
+/*
+ * Version history
+ * ---------------
+ *
+ * 1.1 2020-04-21 (CURRENT)
+ *   - Add beginTransaction() and endTransaction() to prevent interrupts interfering
+ *     with transmissions.
+ *   - Stop using transfer16() and use transfer() instead.
+ *
+ * 1.0 2019-12-26
+ *   Initial public release
+ */
+
 #ifndef SENSORS23K256HANDLER_H
 #define SENSORS23K256HANDLER_H
 
