@@ -91,7 +91,7 @@
  */
 
 
-#define VERSION 2
+#define VERSION 3
 
 #include <RH_RF95.h>
 #include <RHReliableDatagram.h>
@@ -123,8 +123,8 @@
 
 #define PAYLOAD_LEN     11
 #define GATEWAYID       254
-#define TX_MAX_PWR      23
-#define TX_MIN_PWR      5
+#define TX_MAX_PWR      20
+#define TX_MIN_PWR      2
 
 const float frequency = FREQUENCY; // Radio transmit frequency (depends on module in use and legislation)
 #ifdef ENCRYPT_KEY
@@ -178,7 +178,7 @@ int16_t sensor2Value = 0;
 int16_t sensor3Value = 0;
 
 uint16_t batteryVoltage = 0;
-uint8_t transmitPower = (TX_MIN_PWR + TX_MAX_PWR) / 4; // Set initial transmit power to low medium
+int8_t transmitPower = ((TX_MAX_PWR - TX_MIN_PWR) / 4) + TX_MIN_PWR; // Set initial transmit power to low medium
 uint8_t transmitPowerRaw = 25;
 
 

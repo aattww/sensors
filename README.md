@@ -49,7 +49,7 @@ Sensors requires a few external components to work: libraries provide functions 
 **RadioHead Packet Radio library for embedded microprocessors** provides support for RFM95W/RFM96W radios (and many others as well). Download from [airspayce.com](https://www.airspayce.com/mikem/arduino/RadioHead/). After extracting the library to your Arduino IDE libraries folder you will have to do one adjustment. In the beginning of *RadioHead/RH_RF95.h* change line  
 `#define RH_RF95_FIFO_SIZE 255`  
 to  
-`#define RH_RF95_FIFO_SIZE 100`  
+`#define RH_RF95_FIFO_SIZE 64`  
 Communication will not work without this change. You also risk running out of SRAM without this adjustment.
 
 **Arduino Cryptography Library** includes support for encryption. If you do not plan to encrypt traffic, you will not need this library. Download from [github.com](https://github.com/rweather/arduinolibs). You will need to download the ZIP and extract contents of *libraries* to your Arduino IDE libraries folder. Also remember to uncomment the following line at the very end of *RadioHead/RadioHead.h* to enable encryption:  
@@ -241,7 +241,7 @@ Some notes:
 
 I have successfully ordered PCBs from Seeed Studio. You can get boards for 10 gateways/pulse nodes and 10 battery nodes for $9.80 plus postage. Of course any prototype PCB factory will work. PCBs are designed not to have any tight spacings or need for strict tolerances. For gateway and pulse node, select 1.6mm thickness (the enclosure will hold the PCB better). With battery nodes, boards can be thinner (for example 1.2mm works well). Other options should be okay with defaults.
 
-Boards are designed to fit the enclosures mentioned in the table. [Bud Industries DMB-4771](https://www.budind.com/view/Plastic+Boxes/DIN+Rail+Mount+Multi-Board+Box) is a 35mm DIN rail mounted box, while [Supertronic PP42](http://www.supertronic.com/en/cajas_de_plastico/sensors/29/pp42/50) is a simple wall mounted enclosure (use double-sided tape). In the *schematics* folder there is also *AP9_holder.stl* which is a 3D model of a simple holder to fix a battery node into an [ABB AP9 junction box](https://new.abb.com/products/2TKA140012G1/ap9-junction-box-ip65). This is especially handy if you install a node outside and have access to a 3D printer. You will need two holders and a set of small screws. You will also need to have a way to make the box rain-proof but still let humidity and temperature in. Poking some holes into membrane cable entries is one way, or if you want to go professional, use a sintered protective cover. [This](https://www.ebay.com/itm/Protective-Cover-SHT10-SHT20-Soil-Temperature-Humidity-Moisture-Sensor-Shell/173940209491) has been proven to work: a BME280 breakout board will *just* fit inside if you solder wires to the board as [shown here](images/bme280.jpg). Remember to wrap the breakout board (but not the sensor itself) with some insulating tape or use heat shrink to prevent short circuits. [This image](images/si7021_wired.jpg) shows an Si7021 breakout board prepared for outdoor sensor use. You will also need to drill off the plastic inside with the connectors of the protective cover. Use some imagination here. A ready-made weatherproofed sensor looks something like [this](images/weatherproof_node.jpg).
+Boards are designed to fit the enclosures mentioned in the table. [Bud Industries DMB-4771](https://www.budind.com/view/Plastic+Boxes/DIN+Rail+Mount+Multi-Board+Box) is a 35mm DIN rail mounted box, while [Supertronic PP42](http://www.supertronic.com/en/cajas_de_plastico/sensors/29/pp42/50) is a simple wall mounted enclosure (use double-sided tape). In the *schematics* folder there is also *AP9_holder.stl* which is a 3D model of a simple holder to fix a battery node into an [ABB AP9 junction box](https://new.abb.com/products/2TKA140012G1/ap9-junction-box-ip65). This is especially handy if you install a node outside and have access to a 3D printer. You will need two holders and a set of small screws. You will also need to have a way to make the box rain-proof but still let humidity and temperature in. Poking some holes into membrane cable entries is one way, or if you want to go professional, use a sintered protective cover. [This](https://www.ebay.com/itm/Protective-Cover-SHT10-SHT20-Soil-Temperature-Humidity-Moisture-Sensor-Shell/173940209491) has been proven to work: a BME280 breakout board will *just* fit inside if you solder wires to the board as [shown here](images/bme280.jpg). Remember to wrap the breakout board (but not the sensor itself) with some insulating tape or use heat shrink to prevent short circuits. [This image](images/si7021_wired.jpg) shows an Si7021 breakout board prepared for outdoor sensor use. You will also need to drill off the plastic inside with the connectors of the protective cover. Use some imagination here. A ready-made weatherproofed sensor looks something like [this](images/weatherproof_node.jpg). Connecting an NTC thermistor with sufficiently long wire will make a nice water temperature node as shown [here](images/water_temperature_node.jpg).
 
 ## BOM
 
@@ -425,7 +425,7 @@ During normal operation button triggers instant send with full power. Use to qui
 
 ## 1. Solder boards
 
-Refer to [Schematics and PCB](#schematics-and-pcb) for detailed instructions for manufacturing boards. All the chips are through hole packages for easier hand soldering. Smaller components are mostly SMD but they are sufficiently large so that even unexperienced solderers should be able to hand solder them.
+Refer to [Schematics and PCB](#schematics-and-pcb) for detailed instructions and ideas for manufacturing boards. All the chips are through hole packages for easier hand soldering. Smaller components are mostly SMD but they are sufficiently large so that even unexperienced solderers should be able to hand solder them.
 
 ## 2. Download this repository
 
@@ -473,6 +473,12 @@ Distribute other nodes as needed, selecting first their addresses with jumper he
 Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_modbus_to_db.py) provides a starting point for this), for example, and graph it with [Grafana](https://grafana.com/), or connect the gateway to a home automation hub and monitor measurements that way.
 
 # Version history
+
+## v1.1.2 (2020-06-07)
+
+* Fixed 23K256 SRAM handler transactions. [#8](https://github.com/aattww/sensors/issues/8)
+* Fixed initial transmit power of battery and pulse type nodes.
+* Fixed RFM95W transmit powers to address changes made in the RadioHead library.
 
 ## v1.1.1 (2020-03-31)
 
