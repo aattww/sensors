@@ -76,7 +76,7 @@
 
 
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 4
+#define MINOR_VERSION 5
 
 #include <SimpleModbusAsync.h>
 #include <RH_RF95.h>
@@ -100,8 +100,8 @@
 #define SRAM_NSS        9
 
 #define GATEWAYID       254     // Gateway ID in radio network, DO NOT CHANGE!
-#define TX_MAX_PWR      23      // Radio dependant, this is for RFM95
-#define TX_MIN_PWR      5       // Radio dependant, this is for RFM95
+#define TX_MAX_PWR      20      // Radio dependant, this is for RFM95
+#define TX_MIN_PWR      2       // Radio dependant, this is for RFM95
 #define MAX_PAYLOAD_BUF 50      // This needs to be at least 50 to be on the safe side!
 #define PULSE_MIN       1000    // How many ms between pulses at least
 #define EEPROM_SAVE     3600000 // How often in ms to save pulse values to EEPROM

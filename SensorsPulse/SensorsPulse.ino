@@ -85,7 +85,7 @@
  */
 
 
-#define VERSION 3
+#define VERSION 4
 
 #if defined NODE_TYPE_MULTICAL
 #include <SimpleModbusAsync.h>
@@ -116,8 +116,8 @@
 #endif
 
 #define GATEWAYID       254
-#define TX_MAX_PWR      23
-#define TX_MIN_PWR      5
+#define TX_MAX_PWR      20
+#define TX_MIN_PWR      2
 #define PULSE_MIN       1000
 #define EEPROM_SAVE     3600000
 
@@ -159,7 +159,7 @@ bool isDebugMode = false;
 volatile bool forceSend = false;
 uint8_t nodeId; // Node ID
 
-uint8_t transmitPower = (TX_MIN_PWR + TX_MAX_PWR) / 4; // Set initial transmit power to low medium
+int8_t transmitPower = ((TX_MAX_PWR - TX_MIN_PWR) / 4) + TX_MIN_PWR; // Set initial transmit power to low medium
 uint8_t transmitPowerRaw = 25;
 
 volatile uint32_t pulse1 = 0;
