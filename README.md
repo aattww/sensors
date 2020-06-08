@@ -462,7 +462,7 @@ Next, hit *Burn Bootloader*. This doesn't actually burn any bootloader since we 
 
 ## 7. Uploading code
 
-With still the two boards connected, Arduino IDE board settings as described in step 6 and the actual sketch open, just hit *Upload*. This will upload the sketch like any other Arduino sketch. After this, you are done.
+With still the two boards connected, Arduino IDE board settings as described in step 6 and the actual sketch open, just hit *Upload Using Programmer* under *Sketch*. This will upload the sketch like any other Arduino sketch. After this, you are done.
 
 ## 8. Place the sensors
 
