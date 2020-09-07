@@ -719,6 +719,9 @@ void updateLastReceived() {
   
   uint8_t tempBuffer[5];
   
+  // Cast to 16 bits so that the following calculations work (otherwise seen nodes zero after 2^16 minutes)
+  uint16_t currentTime_16 = (uint16_t)currentTime;
+  
   // Iterate through all IDs
   for (uint8_t i = 1; i <= MAX_NR_OF_NODES; i++) {
     // The first 5 bytes has all the data we need here
@@ -730,15 +733,15 @@ void updateLastReceived() {
       // Calculate nodes which have been seen during the last...
       uint16_t lastReceived = (tempBuffer[1] << 8) | tempBuffer[2];
       // ... hour
-      if ((currentTime - lastReceived) <= 60) {
+      if ((currentTime_16 - lastReceived) <= 60) {
         gwMetaData.nodesDuringLastHour++;
       }
       // ... 12 hours
-      if ((currentTime - lastReceived) <= 720) {
+      if ((currentTime_16 - lastReceived) <= 720) {
         gwMetaData.nodesDuringLast12Hours++;
       }
       // ... 24 hours
-      if ((currentTime - lastReceived) <= 1440) {
+      if ((currentTime_16 - lastReceived) <= 1440) {
         gwMetaData.nodesDuringLast24Hours++;
       }
       
@@ -753,7 +756,7 @@ void updateLastReceived() {
       
       // Delete nodes not seen for a while
       if (deleteOldNodes != 0) {
-        if ((currentTime - lastReceived) > deleteOldNodes) {
+        if ((currentTime_16 - lastReceived) > deleteOldNodes) {
           memoryHandler.deleteNode(i);
         }
       }
