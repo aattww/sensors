@@ -507,16 +507,19 @@ bool sendPacket() {
       uint8_t tempBuffer[2];
       uint8_t len = 2;
       uint8_t from;
+      uint8_t to;
       
       // If received packet from gateway
-      if (radioManager.recvfrom(tempBuffer, &len, &from)) {
+      if (radioManager.recvfrom(tempBuffer, &len, &from, &to)) {
         if (from == GATEWAYID) {
-          if (len == 2) {
-            // If this really is ack
-            if (tempBuffer[0] & B00000001) {
-              // Save RSSI reported by gateway for future use
-              lastReportedRSSI = tempBuffer[1];
-              return true;
+          if (to == nodeId) {
+            if (len == 2) {
+              // If this really is ack
+              if (tempBuffer[0] & B00000001) {
+                // Save RSSI reported by gateway for future use
+                lastReportedRSSI = tempBuffer[1];
+                return true;
+              }
             }
           }
         }
