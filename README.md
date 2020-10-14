@@ -474,6 +474,10 @@ Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_mo
 
 # Version history
 
+## v1.1.3 (2020-10-14)
+
+* Fixed number of last seen nodes zeroing after 2^16 minutes. [#12](https://github.com/aattww/sensors/issues/12)
+
 ## v1.1.2 (2020-06-07)
 
 * Fixed 23K256 SRAM handler transactions. [#8](https://github.com/aattww/sensors/issues/8)
