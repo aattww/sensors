@@ -59,10 +59,15 @@
  * ### TARGET RSSI ###
  *
  * Define target RSSI for automatic power control (APC).
- * Lower value will make nodes send messages with less power, saving energy, but at the cost of possibly
- * causing more retransmits.
+ * Lower value will make nodes send messages with less power, saving energy, but at the cost of
+ * possibly causing more retransmits.
+ *
+ * -90 is a good starting point having good balance between energy usage and reliability in
+ * stable environments. Decreasing to -100 and beyond gives even more energy savings but may
+ * start to cause more retransmits, especially in noisy environments.
+ *
  */
-#define TARGET_RSSI   -80 
+#define TARGET_RSSI   -90
 
 /*
  * ### TIMINGS ###
@@ -131,6 +136,7 @@
 #define JMP_PIN         9
 
 #define PAYLOAD_LEN     11
+#define MAX_PAYLOAD_LEN 40
 #define GATEWAYID       254
 #define TX_MAX_PWR      20
 #define TX_MIN_PWR      2
@@ -163,7 +169,7 @@ NTCSensor sensorNTC(NTC_ENABLE_PIN, NTC_PIN); // NTC instance
 
 // Payload buffer
 // Header | Battery_MSB | Battery_LSB | TransmitPower | TransmitInterval | Sensor1_MSB | Sensor1_LSB | Sensor2_MSB | Sensor2_LSB | Sensor3_MSB | Sensor3_LSB
-uint8_t payloadBuffer[PAYLOAD_LEN];
+uint8_t payloadBuffer[MAX_PAYLOAD_LEN];
 
 uint16_t neededSleepCycles; // How many 8 second sleep cycles are needed for full sleep time
 uint8_t transmitInterval; // How often should gateway expect transmit (in minutes)
@@ -414,25 +420,22 @@ bool sendPacket() {
     uint16_t timeout = 200;
     #endif
 
+    uint32_t sendTime = millis();
+
+    uint8_t len = MAX_PAYLOAD_LEN;
+    uint8_t from;
+    uint8_t to;
+    
     // Wait ack
-    if (radioManager.waitAvailableTimeout(timeout)) {
-      uint8_t tempBuffer[2];
-      uint8_t len = 2;
-      uint8_t from;
-      uint8_t to;
-      
+    while ((millis() - sendTime) < timeout) {
       // If received packet from gateway
-      if (radioManager.recvfrom(tempBuffer, &len, &from, &to)) {
-        if (from == GATEWAYID) {
-          if (to == nodeId) {
-            if (len == 2) {
-              // If this really is ack
-              if (tempBuffer[0] & B00000001) {
-                // Save RSSI reported by gateway for future use
-                lastReportedRSSI = tempBuffer[1];
-                return true;
-              }
-            }
+      if (radioManager.recvfrom(payloadBuffer, &len, &from, &to)) {
+        if ((from == GATEWAYID) && (to == nodeId) && (len == 2)) {
+          // If this really is ack
+          if (payloadBuffer[0] & B00000001) {
+            // Save RSSI reported by gateway for future use
+            lastReportedRSSI = payloadBuffer[1];
+            return true;
           }
         }
       }
@@ -460,6 +463,9 @@ void updateTransmitPower(bool lastTransmitOk) {
     }
     else if (lastReportedRSSI < TARGET_RSSI) {
       defaultChange = defaultChange;
+      
+      // Not really a failed transmit but if we have to increase power, our floor has been found
+      hasFailedTransmit = true;
     }
     else {
       defaultChange = 0;
@@ -685,14 +691,14 @@ void blinkLed(uint8_t blinks, bool loop) {
   do {
     for (uint8_t i = 0; i < blinks; i++) {
       digitalWrite(LED_PIN, HIGH);
-      delay(100);
+      delay(50);
       digitalWrite(LED_PIN, LOW);
       if (i != (blinks - 1)) {
-        delay(200);
+        delay(150);
       }
     }
     if (loop) {
-      delay(2200);
+      delay(2150);
     }
   } while (loop);
 }
