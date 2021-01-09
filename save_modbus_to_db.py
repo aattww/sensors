@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # MIT License
 #
@@ -23,27 +23,64 @@
 # SOFTWARE.
 
 
-# Simple example (very simplified) Python script to read data from Sensors gateway and save it to MySQL database.
-# Remember to change correct database settings in line 46.
-# Remember to change correct port and slave address in line 63.
-# Also remember to install needed libraries:
+# Simple example (very simplified) Python script to read data from a Sensors gateway and save
+# it to MySQL database. Use this as a base for your own needs.
+#
+# Remember to change the correct port and slave address and database settings below before use.
+#
+# Also remember to install the needed libraries:
 #   minimalmodbus: https://pypi.org/project/minimalmodbus/
 #   mysql.connector: https://dev.mysql.com/doc/connector-python/en/
+
+
+##################
+# BEGIN SETTINGS #
+##################
+
+# Serial settings
+serial_device = "/dev/serial0" # This should work with Raspberry if gateway is connected directly to headers
+modbus_address = 1 # Gateway slave address
+
+# Database settings
+db_user = "user"
+db_password = "password"
+db_host = "localhost"
+db_database = "database"
+
+################
+# END SETTINGS #
+################
 
 import minimalmodbus
 import mysql.connector
 from datetime import datetime
 
-# Helper function to convert 16 bit unsigned values from gateway to signed 16 bit values.
+# Helper function to convert 16 bit unsigned values from gateway to signed 16 bit values
+# so that negative values are handled correctly.
+#
+# value:    unsigned value to be converted
+#
+# returns:  signed value
+#
 def to_signed(value):
   if (value >= 2**15):
     return (value - 2**16)
   else:
     return (value)
 
+# Function to save one value to database.
+#
+# Automatically adds current date and time.
+#
+# table:   database table name
+# column:  database column
+# value:   value to be saved
+#
+# returns: no
+#
 def save_to_db(table, column, value):
   try:
-    cnx = mysql.connector.connect(user='user', password='password', host='localhost', database='database')
+    cnx = mysql.connector.connect(user=db_user, password=db_password, host=db_host, database=db_database)
     cursor = cnx.cursor()
   
     dt = datetime.now().replace(second=0, microsecond=0)
@@ -59,18 +96,18 @@ def save_to_db(table, column, value):
     cursor.close()
     cnx.close()
 
-minimalmodbus.BAUDRATE = 38400
-gateway = minimalmodbus.Instrument('/dev/serial0', 1)
+gateway = minimalmodbus.Instrument(serial_device, modbus_address)
+gateway.serial.baudrate = 38400
 
 # Read node 1 modbus data
 try:
   mb_data = gateway.read_registers(100, 8)
-except Exception:
-  mb_data = 0
-
-# If we had correct amount of data, save it to database
-if mb_data != 0:
+  
+  # If we had correct amount of data, save it to database
   if len(mb_data) == 8:
-    save_to_db("out", "temperature", to_signed(mb_data[5]))
-    save_to_db("out", "humidity", to_signed(mb_data[6]))
-    save_to_db("out", "pressure", to_signed(mb_data[7]))
+    save_to_db("node_1", "temperature", to_signed(mb_data[5]))
+    save_to_db("node_1", "humidity", to_signed(mb_data[6]))
+    save_to_db("node_1", "pressure", to_signed(mb_data[7]))
+except Exception:
+  print("Error saving node 1 data to database")
+

@@ -474,6 +474,15 @@ Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_mo
 
 # Version history
 
+## v2.0.0 (2021-01-09)
+
+* Changed the way how automatic transmit power control works: now it targets a certain user settable RSSI instead of lowering power until transmits fail. See node settings for more info.
+* Changed acknowledgements from gateway to nodes. This enables the changed power control method and gives more options in the future.
+* Updated example scripts [*save_modbus_to_db.py*](save_modbus_to_db.py) and [*read_modbus.py*](read_modbus.py) to reflect changes made in underlying libraries and to make them easier to use.
+* Added a script [*check_alarms.py*](check_alarms.py) as an example on how to send email alerts under different conditions.
+
+**Note:** Due to the changes, version 2 gateway is no longer compatible with nodes running lower versions. Messages will be delivered but because nodes expect different kind of acknowledgements, they will consider messages lost. This triggers retransmits, full transmit power and more battery usage.
+
 ## v1.1.3 (2020-10-14)
 
 * Fixed number of last seen nodes zeroing after 2^16 minutes. [#12](https://github.com/aattww/sensors/issues/12)
