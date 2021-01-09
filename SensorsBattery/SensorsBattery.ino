@@ -56,6 +56,20 @@
 #define RETRIES       1
 
 /*
+ * ### TARGET RSSI ###
+ *
+ * Define target RSSI for automatic power control (APC).
+ * Lower value will make nodes send messages with less power, saving energy, but at the cost of
+ * possibly causing more retransmits.
+ *
+ * -90 is a good starting point having good balance between energy usage and reliability in
+ * stable environments. Decreasing to -100 and beyond gives even more energy savings but may
+ * start to cause more retransmits, especially in noisy environments.
+ *
+ */
+#define TARGET_RSSI   -90
+
+/*
  * ### TIMINGS ###
  *
  * Define timings.
@@ -91,10 +105,10 @@
  */
 
 
-#define VERSION 3
+#define VERSION 4
 
 #include <RH_RF95.h>
-#include <RHReliableDatagram.h>
+#include <RHDatagram.h>
 
 #include <avr/sleep.h>
 #include <avr/wdt.h>
@@ -122,6 +136,7 @@
 #define JMP_PIN         9
 
 #define PAYLOAD_LEN     11
+#define MAX_PAYLOAD_LEN 40
 #define GATEWAYID       254
 #define TX_MAX_PWR      20
 #define TX_MIN_PWR      2
@@ -143,9 +158,9 @@ RH_RF95 rf95Driver;
 #ifdef ENCRYPT_KEY
 Speck cipherDriver;
 RHEncryptedDriver encryptedDriver(rf95Driver, cipherDriver);
-RHReliableDatagram radioManager(encryptedDriver);
+RHDatagram radioManager(encryptedDriver);
 #else
-RHReliableDatagram radioManager(rf95Driver);
+RHDatagram radioManager(rf95Driver);
 #endif
 
 SI7021 sensorSI7021; // SI7021 instance
@@ -154,7 +169,7 @@ NTCSensor sensorNTC(NTC_ENABLE_PIN, NTC_PIN); // NTC instance
 
 // Payload buffer
 // Header | Battery_MSB | Battery_LSB | TransmitPower | TransmitInterval | Sensor1_MSB | Sensor1_LSB | Sensor2_MSB | Sensor2_LSB | Sensor3_MSB | Sensor3_LSB
-uint8_t payloadBuffer[PAYLOAD_LEN];
+uint8_t payloadBuffer[MAX_PAYLOAD_LEN];
 
 uint16_t neededSleepCycles; // How many 8 second sleep cycles are needed for full sleep time
 uint8_t transmitInterval; // How often should gateway expect transmit (in minutes)
@@ -180,6 +195,7 @@ int16_t sensor3Value = 0;
 uint16_t batteryVoltage = 0;
 int8_t transmitPower = ((TX_MAX_PWR - TX_MIN_PWR) / 4) + TX_MIN_PWR; // Set initial transmit power to low medium
 uint8_t transmitPowerRaw = 25;
+int8_t lastReportedRSSI;
 
 
 void setup() {
@@ -252,7 +268,6 @@ void setup() {
   cipherDriver.setKey(encryptKey, sizeof(encryptKey)-1); // Discard null character at the end
   #endif
   radioManager.setThisAddress(nodeId);
-  radioManager.setRetries(0);
   
   // If failed to init radio, start blinking led
   if (!radioManager.init()) {
@@ -263,7 +278,6 @@ void setup() {
   rf95Driver.setTxPower(transmitPower); // 5-23 dBm
   #ifdef ENABLE_LOW_RATE
   rf95Driver.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
-  radioManager.setTimeout(3500);
   #endif
 
   // Set button interrupt
@@ -332,6 +346,9 @@ bool constructAndSendPacket() {
     payloadBuffer[0] |= B00100000;
   }
   
+  // Set expect ack bit
+  payloadBuffer[0] |= B01000000;
+  
   payloadBuffer[1] = batteryVoltage >> 8;
   payloadBuffer[2] = batteryVoltage;
   payloadBuffer[3] = transmitPowerRaw;
@@ -352,7 +369,7 @@ bool constructAndSendPacket() {
   bool transmitOk = false;
   for (uint8_t i = 0; i < maxNrOfSends; i++) {
     // Send packet
-    transmitOk = radioManager.sendtoWait(payloadBuffer, PAYLOAD_LEN, GATEWAYID);
+    transmitOk = sendPacket();
     
     // Update transmit power based on transmit result if not in force send (force sends are always sent at full power and don't count for APC)
     if (!forceSend) {
@@ -390,36 +407,86 @@ bool constructAndSendPacket() {
   return transmitOk;
 }
 
-void updateTransmitPower(bool lastTransmitOk) {
-  uint8_t subConstant = 1;
-  uint8_t addConstant = 10;
-  
-  if (lastTransmitOk) {
-    // If there are no failed transmits yet, decrease power faster (to speed up power decrease after boot up)
-    if (!hasFailedTransmit) {
-      subConstant = 5;
-    }
-    if ((transmitPowerRaw - subConstant) < 0) {
-      transmitPowerRaw = 0;
-    }
-    else {
-      transmitPowerRaw = transmitPowerRaw - subConstant;
+bool sendPacket() {
+  // If packet accepted by radio
+  if (radioManager.sendto(payloadBuffer, PAYLOAD_LEN, GATEWAYID)) {
+    
+    // Wait for packet to be sent
+    radioManager.waitPacketSent();
+
+    #ifdef ENABLE_LOW_RATE
+    uint16_t timeout = 3500;
+    #else
+    uint16_t timeout = 200;
+    #endif
+
+    uint32_t sendTime = millis();
+
+    uint8_t len = MAX_PAYLOAD_LEN;
+    uint8_t from;
+    uint8_t to;
+    
+    // Wait ack
+    while ((millis() - sendTime) < timeout) {
+      // If received packet from gateway
+      if (radioManager.recvfrom(payloadBuffer, &len, &from, &to)) {
+        if ((from == GATEWAYID) && (to == nodeId) && (len == 2)) {
+          // If this really is ack
+          if (payloadBuffer[0] & B00000001) {
+            // Save RSSI reported by gateway for future use
+            lastReportedRSSI = payloadBuffer[1];
+            return true;
+          }
+        }
+      }
     }
   }
+  return false;
+}
+
+void updateTransmitPower(bool lastTransmitOk) {
+  
+  // Default power change. Increase to make APC more aggressive.
+  int8_t defaultChange = 1;
+  
+  // If transmit was successful, increase/decrease power based on reported RSSI
+  if (lastTransmitOk) {
+    
+    if (lastReportedRSSI > TARGET_RSSI) {
+      // If there are no failed transmits yet, decrease power faster (to speed up power decrease after boot up)
+      if (!hasFailedTransmit) {
+        defaultChange *= -4;
+      }
+      else {
+        defaultChange *= -1;
+      }
+    }
+    else if (lastReportedRSSI < TARGET_RSSI) {
+      defaultChange = defaultChange;
+      
+      // Not really a failed transmit but if we have to increase power, our floor has been found
+      hasFailedTransmit = true;
+    }
+    else {
+      defaultChange = 0;
+    }
+      
+  }
+  // If transmit was unsuccessful, increase always power
   else {
     hasFailedTransmit = true;
     
     // If this was the first failed transmit, increase power only by half
     if (previousTransmitOk) {
-      addConstant = addConstant / 2;
-    }
-    if ((transmitPowerRaw + addConstant) > 100) {
-      transmitPowerRaw = 100;
+      defaultChange *= 4;
     }
     else {
-      transmitPowerRaw = transmitPowerRaw + addConstant;
+      defaultChange *= 8;
     }
   }
+  
+  // Add/subtract change
+  transmitPowerRaw = constrain((transmitPowerRaw + defaultChange), 0, 100);
   
   // Map raw transmit power to real usable range
   transmitPower = map(transmitPowerRaw, 0, 100, TX_MIN_PWR, TX_MAX_PWR);
@@ -624,14 +691,14 @@ void blinkLed(uint8_t blinks, bool loop) {
   do {
     for (uint8_t i = 0; i < blinks; i++) {
       digitalWrite(LED_PIN, HIGH);
-      delay(100);
+      delay(50);
       digitalWrite(LED_PIN, LOW);
       if (i != (blinks - 1)) {
-        delay(200);
+        delay(150);
       }
     }
     if (loop) {
-      delay(2200);
+      delay(2150);
     }
   } while (loop);
 }

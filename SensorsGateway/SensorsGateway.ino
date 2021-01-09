@@ -76,11 +76,11 @@
 
 
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 6
+#define MINOR_VERSION 7
 
 #include <SimpleModbusAsync.h>
 #include <RH_RF95.h>
-#include <RHReliableDatagram.h>
+#include <RHDatagram.h>
 #include <EEPROM.h>
 #include <NTCSensor.h>
 #include <SensorsMemoryHandler.h>
@@ -126,9 +126,9 @@ RH_RF95 rf95Driver;
 #ifdef ENCRYPT_KEY
 Speck cipherDriver;
 RHEncryptedDriver encryptedDriver(rf95Driver, cipherDriver);
-RHReliableDatagram radioManager(encryptedDriver);
+RHDatagram radioManager(encryptedDriver);
 #else
-RHReliableDatagram radioManager(rf95Driver);
+RHDatagram radioManager(rf95Driver);
 #endif
 
 // Modbus handler instance
@@ -219,7 +219,6 @@ void setup() {
   cipherDriver.setKey(encryptKey, sizeof(encryptKey)-1); // Discard null character at the end
   #endif
   radioManager.setThisAddress(GATEWAYID);
-  radioManager.setRetries(0);
   
   if (!radioManager.init()) {
     enterError(5);
@@ -228,7 +227,6 @@ void setup() {
   rf95Driver.setTxPower(TX_MAX_PWR); // 5-23 dBm
   #ifdef ENABLE_LOW_RATE
   rf95Driver.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
-  radioManager.setTimeout(3500);
   #endif
   
   readPulsesFromEEPROM();
@@ -294,8 +292,29 @@ void checkRadio() {
   if (radioManager.available()) {
     uint8_t len = MAX_PAYLOAD_BUF;
     uint8_t from;
-    // If received a message sent to us (automatically acks)
-    if (radioManager.recvfromAck(payloadBuffer, &len, &from)) {
+    uint8_t to;
+    
+    // If received a message sent to us
+    if (radioManager.recvfrom(payloadBuffer, &len, &from, &to)) {
+      
+      // Ignore broadcasts
+      if (to != GATEWAYID) {
+        return;
+      }
+      
+      // Ack immediately if ack is requested
+      if (payloadBuffer[0] & B01000000) {
+        uint8_t tempBuffer[2];
+        
+        // Set this is ack bit
+        tempBuffer[0] = B00000001;
+        // Report back received RSSI
+        tempBuffer[1] = rf95Driver.lastRssi();
+        
+        // Send ack
+        radioManager.sendto(tempBuffer, 2, from);
+      }
+      
       // Process packet
       
       // DEBUG - WHAT HAPPENS IF RECEIVED MESSAGE ENCRYPTED WITH WRONG KEY? (can header and length still match?)
