@@ -59,20 +59,9 @@
  * Define how many times to resend message if first transmit fails.
  * After all retries have been exhausted, new transmit is tried after sleep time.
  *
- * Applies only if SEND_AND_FORGET is not defined.
- *
  * Limited to 0-4.
  */
 #define RETRIES       1
-
-/*
- * ### SEND AND FORGET ###
- *
- * Define whether node should send reliable or unreliable messages.
- * If SEND_AND_FORGET is defined, node sends a message every SEND_INTERVAL without waiting for acknowledgement.
- * If SEND_AND_FORGET is undefined, node waits for ack and, if necessary, retries transmission.
- */
-//#define SEND_AND_FORGET
 
 /*
  * ### TARGET RSSI ###
@@ -399,10 +388,8 @@ bool constructAndSendPacket() {
     payloadBuffer[0] |= B00100000;
   }
   
-  // Set expect ack bit if needed
-  #if not defined SEND_AND_FORGET
+  // Set expect ack bit
   payloadBuffer[0] |= B01000000;
-  #endif
   
   payloadBuffer[1] = transmitPowerRaw;
   payloadBuffer[2] = transmitInterval;
