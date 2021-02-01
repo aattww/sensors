@@ -54,6 +54,18 @@
 #define FREQUENCY     867.6
 
 /*
+ * ### NODE ID ###
+ *
+ * Optionally define ID. Normally the ID is set using headers but if you want to omit them you
+ * can set the ID here. Note that if setting the ID here and programming multiple nodes, you have to
+ * remember to change this setting for every node.
+ *
+ * Limited to 0-253. Setting to 0 will read the actual ID from the headers, setting to 1-253 will
+ * use that regardless of the headers.
+ */
+#define NODE_ID       0
+
+/*
  * ### RETRIES ###
  *
  * Define how many times to resend message if first transmit fails.
@@ -256,7 +268,12 @@ void setup() {
   // Calculate proper timings
   setTimings();
 
+  // Read the ID if not already set
+  #if NODE_ID == 0
   readIds();
+  #else
+  nodeId = NODE_ID;
+  #endif
   
   #if defined NODE_TYPE_MULTICAL
   // Initialize Modbus
