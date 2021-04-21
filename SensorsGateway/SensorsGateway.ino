@@ -46,6 +46,17 @@
 #define FREQUENCY     867.6
 
 /*
+ * ### MODBUS SLAVE ADDRESS ###
+ *
+ * Optionally define Modbus slave address. Normally the address is set using headers but if you want
+ * to omit them you can set the address here.
+ *
+ * Limited to 0-253. Setting to 0 will read the actual address from the headers, setting to 1-253 will
+ * use that regardless of the headers.
+ */
+#define MB_ADDRESS        0
+
+/*
  * ### DELETE NODES ###
  *
  * Define after how many minutes delete nodes if they have not been seen.
@@ -246,7 +257,14 @@ void setup() {
   }
   
   // Initialize Modbus
+  
+  // Read Modbus address if not already set
+  #if MB_ADDRESS == 0
   readIds();
+  #else
+  nodeId = MB_ADDRESS;
+  #endif
+  
   modbus.setComms(&Serial, 38400, MAX_DE_PIN);
   modbus.setAddress(nodeId);
   
