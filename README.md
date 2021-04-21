@@ -474,6 +474,11 @@ Start logging measurements to a MySQL database ([*save_modbus_to_db.py*](save_mo
 
 # Version history
 
+## v2.1.0 (2021-04-21)
+
+* Added ability to set addresses in settings instead of using headers. This decreases components to be soldered and makes it easier to use Unos, Pro Minis or other full size Arduinos.
+* Changed topology image to reflect new PCB shape.
+
 ## v2.0.0 (2021-01-09)
 
 * Changed the way how automatic transmit power control works: now it targets a certain user settable RSSI instead of lowering power until transmits fail. See node settings for more info.
